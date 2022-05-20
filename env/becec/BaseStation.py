@@ -307,3 +307,6 @@ class BaseStation:
         """
         # print(f"There are {len(self.tasks_external)} external tasks not been allocated!")
         self.tasks_external.clear()
+
+    def seed(self, seed):
+        np.random.seed(seed)

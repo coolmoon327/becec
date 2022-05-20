@@ -1,8 +1,6 @@
 import gym
 import dmc2gym
 
-from utils.utils import read_config
-from env.becec.Observation import Observation
 
 OPENAI_MUJOCO_PREFIX = [
     "Walker", "HalfCheetah", "Swimmer", "InvertedPendulum", "InvertedDoublePendulum",
@@ -13,16 +11,12 @@ OPENAI_MUJOCO_PREFIX = [
 class EnvWrapper:
     def __init__(self, env_name):
         self.env_name = env_name
-        if env_name == "becec":
-            config = read_config('config.yml')
-            self.env = Observation(config=config)
+        open_ai_env = len([pref for pref in OPENAI_MUJOCO_PREFIX if pref in env_name]) > 0
+        if open_ai_env:
+            self.env = gym.make(self.env_name)
         else:
-            open_ai_env = len([pref for pref in OPENAI_MUJOCO_PREFIX if pref in env_name]) > 0
-            if open_ai_env:
-                self.env = gym.make(self.env_name)
-            else:
-                domain, task = env_name.split("-")
-                self.env = dmc2gym.make(domain_name=domain, task_name=task)
+            domain, task = env_name.split("-")
+            self.env = dmc2gym.make(domain_name=domain, task_name=task)
 
     def reset(self):
         state = self.env.reset()

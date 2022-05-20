@@ -210,3 +210,9 @@ class Environment:
 
     def clear_tasks_at_BS(self, BS_ID: int):
         self.BS[BS_ID].clear_tasks()
+
+    def seed(self, seed):
+        np.random.seed(seed)
+        for bs in self.BS:
+            bs.seed(seed+bs.uuid)   # 避免所有 BS 的 seed 完全一样，导致随机的内容一样
+        # TODO 检查是否还有其他地方需要设置随机种子
