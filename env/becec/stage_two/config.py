@@ -6,7 +6,7 @@ from datetime import datetime
 import sys
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, BASE)
-from env.becec.Parameter import Parameter
+
 
 def argparser(env):
 	parser = argparse.ArgumentParser()
@@ -44,15 +44,15 @@ def argparser(env):
 	parser.add_argument('--islogger', action = 'store_false', help = 'flag csv logger default true')
 	parser.add_argument('--issaver', action = 'store_false', help = 'flag model saver default true')
 	parser.add_argument('-ls', '--log_step', metavar = 'LOGS', type = int, default = 10, help = 'logger timing')
-	parser.add_argument('-ld', '--log_dir', metavar = 'LD', type = str, default = './Csv/', help = 'csv logger dir')
-	parser.add_argument('-md', '--model_dir', metavar = 'MD', type = str, default = './Pt/', help = 'model save dir')
-	parser.add_argument('-pd', '--pkl_dir', metavar = 'PD', type = str, default = './Pkl/', help = 'pkl save dir')
+	parser.add_argument('-ld', '--log_dir', metavar = 'LD', type = str, default = './env/becec/stage_two/Csv/', help = 'csv logger dir')
+	parser.add_argument('-md', '--model_dir', metavar = 'MD', type = str, default = './env/becec/stage_two/Pt/', help = 'model save dir')
+	parser.add_argument('-pd', '--pkl_dir', metavar = 'PD', type = str, default = './env/becec/stage_two/Pkl/', help = 'pkl save dir')
 	
 	# GPU
 	parser.add_argument('-cd', '--cuda_dv', metavar = 'CD', type = str, default = '0', help = 'os CUDA_VISIBLE_DEVICE, default single GPU')
 	# para = Parameter(M=50, T=100)
 	args = parser.parse_args(['-m=test', '-t=10', f'-sl={env.param.delta_t}', f'-s={1}',  # f'-s={env.param.frame}
-                           '-b=1', '-ap=Pt/train10_0414_14_54_step1179000_act.pt', 
+                           '-b=1', '-ap=./env/becec/stage_two/Pt/train10_0414_14_54_step1179000_act.pt', 
                            f'--seed={env.param.seed}', '-ls=10']) # 传入参数的位置
 	return args
 
@@ -86,6 +86,7 @@ def dump_pkl(args, verbose = True, override = None):
 def load_pkl(pkl_path, verbose = True):
 	if not os.path.isfile(pkl_path):
 		raise FileNotFoundError('pkl_path')
+	# print(pkl_path)
 	with open(pkl_path, 'rb') as f:
 		cfg = pickle.load(f)
 		# if verbose:
@@ -95,8 +96,7 @@ def load_pkl(pkl_path, verbose = True):
 
 def pkl_parser():
 	parser = argparse.ArgumentParser()
-	parser.add_argument('-p', '--path', metavar = 'P', type = str, 
-						default = 'Pkl/test10.pkl', help = 'pkl file name') # train5 在 train 后面的数据表示的含义是有几个任务
+	parser.add_argument('-p', '--path', metavar = 'P', type = str, default = './env/becec/stage_two/Pkl/test10.pkl', help = 'pkl file name')
 	args = parser.parse_args()
 	return args
 	

@@ -4,13 +4,17 @@ import time
 import torch
 from gym import spaces
 
-from env.becec.Environment import Environment
-from env.becec.stage_two.Stage_Two_Pointer import Stage_Two_Pointer
+from .Environment import Environment
+from .stage_two.Stage_Two_Pointer import Stage_Two_Pointer
 
 # TODO 添加一种 state 模式，不记录具体的 p，只记录 p_coef
 
 class Observation(object):
-    def __init__(self, config):
+    def __init__(self, config={}):
+        if len(config):
+            self.load_config(config)
+    
+    def load_config(self, config):
         self.config = config
         self._env = Environment(config=config)
         
@@ -24,33 +28,12 @@ class Observation(object):
             self.env.saveEnv()
             print(self.env.BS[0].mmpp.steady_dist)
         
-        state_mode = config['state_mode']
-        action_mode = config['action_mode']
-        M = config['M']
-        delta_t = config['delta_t']
-        n_tasks = config['n_tasks']
-                
-        if state_mode == 0:
-            # 方案一 - 观测内容：基站信息（delta_t 个时隙的 C 和 p） + 任务信息（w, u_0, alpha）
-            self.n_observations = M*delta_t*2 + n_tasks*3     
-        elif state_mode == 1:
-            # 方案二 - 观测内容：基站信息（C、p 信息聚合到两个维度上） + 任务信息（w, u_0, alpha）
-            self.n_observations = M*2 + n_tasks*3               
-        
-        if action_mode == 0:
-            # 方案一 - 行为内容：任务调度（目标基站） 输出 [-1, 1] 量化成 M+1 个基站编号（其中一个是 null）
-            self.n_actions = n_tasks
-        elif action_mode == 1:
-            # 方案二 - 行为内容：one-hot    输出 (M+1) 个 [-1, 1] 为一组，表示该任务调度到各基站上去的 one-hot 概率
-            self.n_actions = n_tasks * (M+1)
+        self.n_observations = config['state_dim']
+        self.n_actions = config['action_dim']
         
         # TODO 检查 action_space
-        self.action_space = spaces.Box(low=-1., high=1., shape=(self.n_actions,))
-
-        # TODO check whether these operations work for global
-        config['state_dim'] = self.n_observations
-        config['action_dim'] = self.n_actions
-
+        self.action_space = spaces.Box(low=config['action_low'], high=config['action_high'], shape=(self.n_actions,))
+    
     def _sort_batch_tasks(self, batch_begin_index, next_batch_begin_index):
         """
         对当前批的任务按照某种规则排序，以提升训练效果
@@ -200,7 +183,11 @@ class Observation(object):
     
         # 3. 环境更新到下一个 frame
         # TODO 实现按照到达任务数量的 frame 更新
-        pass
+        # TODO 验证是否会超出 T，以及有无影响
+        while True:
+            self._env.next()
+            if self._env.is_end_of_frame():
+                break
     
         s_ = self.get_state()
         

@@ -2,7 +2,7 @@
 
 env: BECEC
 random_seed: 2019
-num_agents: 4
+num_agents: 1
 
 # Training parameters
 
@@ -17,11 +17,15 @@ priority_beta_end: 1.0 # beta will be linearly annelaed from its start value to 
 discount_rate: 0.99 # Discount rate (gamma) for future rewards
 n_step_returns: 5 # number of future steps to collect experiences for N-step returns
 update_agent_ep: 1 # agent gets latest parameters from learner every update_agent_ep episodes
-replay_queue_size: 64 # queue with replays from all the agents
+replay_queue_size: 1024 # queue with replays from all the agents
 batch_queue_size: 64 # queue with batches given to learner
 replay_memory_prioritized: 0
 num_episode_save: 100
-device: cuda
+# device: cuda
+device: cpu
+agent_device: cpu
+save_buffer_on_disk: 0
+save_reward_threshold: 1 # difference in best reward to save agent model
 
 
 # Network parameters
@@ -31,9 +35,11 @@ actor_learning_rate: 0.0005
 dense_size: 400 # size of the 2 hidden layers in networks
 final_layer_init: 0.003
 num_atoms: 51 # number of atoms in output layer of distributed critic
-v_min: -20.0 # lower bound of critic value output distribution
-v_max: 0.0 # upper bound of critic value output distribution
+v_min: -10000 # lower bound of critic value output distribution
+v_max: 20000 # upper bound of critic value output distribution
 tau: 0.001 # parameter for soft target network updates
+
+# TODO 想办法将 reward 的取值设计得在某个可控范围内，或者想办法找到 v_min 和 v_max
 
 # Miscellaneous
 

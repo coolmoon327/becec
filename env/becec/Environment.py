@@ -4,8 +4,8 @@ from typing import List
 import pickle
 import os
 
-from env.becec.BaseStation import BaseStation
-from env.becec.Task import Task
+from .BaseStation import BaseStation
+from .Task import Task
 
 
 class Environment:

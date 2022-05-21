@@ -1,6 +1,6 @@
 import numpy as np
-from env.becec.Task import Task
-from env.becec.MMPP import MMPP
+from .Task import Task
+from .MMPP import MMPP
 
 MMPP_MEAN_RESIZE = 0.95   # mmpp 均值的调整系数，越小任务生成率越大
 
