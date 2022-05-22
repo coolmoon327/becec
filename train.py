@@ -2,6 +2,7 @@ import argparse
 from models.engine import load_engine
 from utils.utils import read_config
 from env.becec_wrapper import BECEC
+from env.becec.stage_two.config import Config
 
 parser = argparse.ArgumentParser(description='Run training')
 parser.add_argument("--config", type=str, default='./config.yml', help="Path to the config file.")
