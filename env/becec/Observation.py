@@ -21,12 +21,12 @@ class Observation(object):
         self.alg_2 = Stage_Two_Pointer(self._env)
         
         # TODO check whether it works while paralleling
-        if self.env.is_local_file_exsisted():
-            self.env.loadEnv()
-            print(self.env.BS[0].mmpp.steady_dist)
+        if self._env.is_local_file_exsisted():
+            self._env.loadEnv()
+            print(self._env.BS[0].mmpp.steady_dist)
         else:
-            self.env.saveEnv()
-            print(self.env.BS[0].mmpp.steady_dist)
+            self._env.saveEnv()
+            print(self._env.BS[0].mmpp.steady_dist)
         
         self.n_observations = config['state_dim']
         self.n_actions = config['action_dim']
@@ -119,23 +119,26 @@ class Observation(object):
         env = self._env
         
         # TODO 检查 actor 网络输出是否在 [-1., 1.]
-        action_raw = action_raw.detach().clamp(-1., 1.)
+        if type(action_raw) is np.ndarray:
+            action_raw = np.clip(action_raw, -1., 1.)
+        else:
+            action_raw = action_raw[0, :].detach().clamp(-1., 1.).numpy()
         
         if action_mode == 0:
             # 方案一 - 在 [-1, 1] 上量化出选择的基站
             # 传入 action 的取值为 tanh，需要映射到 [0, M-1] 去
             action = action_raw + 1.        # [0., 2.]
             action = action * M/2.          # [0., M.]  第 M 个表示 null
-            action = torch.round(action)
+            action = np.round(action)
         elif action_mode == 1:
             # 方案二 - 用类似 one hot 的方式，从每 (M+1) 个数中选择一个最大的，对应的下标就是选择的 BS
             n_tasks = n_tasks
-            action = torch.zeros(1, n_tasks)
+            action = np.zeros(1, n_tasks)
             for i in range(n_tasks):
                 first_index = i*(M+1)
                 last_index = (i+1)*(M+1) - 1
-                one_hot = action_raw[0, first_index:last_index+1]
-                action[0][i] = torch.argmax(one_hot)
+                one_hot = action_raw[first_index:last_index+1]
+                action[0][i] = np.argmax(one_hot)
         
         batch_begin_index = env.task_batch_num * n_tasks  # 批首任务的下标
         next_batch_begin_index = min((env.task_batch_num+1) * n_tasks, len(env.task_set))  # 下一批首任务的下标
@@ -172,6 +175,7 @@ class Observation(object):
     
     def reset(self):
         self._env.reset()
+        return self.get_state()
     
     def step(self, action):
         # 1. 执行第一阶段

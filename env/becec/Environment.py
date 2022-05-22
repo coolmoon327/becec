@@ -186,8 +186,8 @@ class Environment:
 
     def saveEnv(self):
         # 主要保存 BS 数据
-        if not os.path.exists('env/data/'):
-            os.makedirs('env/data/')
+        if not os.path.exists('env/becec/data/'):
+            os.makedirs('env/becec/data/')
         
         env_name = f"M{self.config['M']}T{self.config['T']}delta_t{self.config['delta_t']}"
         suffix = 1
