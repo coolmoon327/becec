@@ -96,7 +96,7 @@ def load_pkl(pkl_path, verbose = True):
 
 def pkl_parser():
 	parser = argparse.ArgumentParser()
-	parser.add_argument('-p', '--path', metavar = 'P', type = str, default = './env/becec/stage_two/Pkl/test10.pkl', help = 'pkl file name')
+	parser.add_argument('-p', '--path', metavar = 'P', type = str, default = 'env/becec/stage_two/Pkl/test10.pkl', help = 'pkl file name')
 	args = parser.parse_args()
 	return args
 	
