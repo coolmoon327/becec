@@ -61,10 +61,10 @@ class Env_tsp():
 		for i in range(len(task)):
 			data[0][i][0] = task[i].cpu_requirement()
 			data[0][i][1] = task[i].alpha
-			for slot in range(get_env.param.delta_t):
+			for slot in range(get_env.config['delta_t']):
 				data[0][i][2 + slot] = \
 					get_env.C(i=self.BS, t=slot) # i = self.BS
-			for slot in range(get_env.param.delta_t):
+			for slot in range(get_env.config['delta_t']):
 				data[0][i][32 + slot] = \
 					get_env.p(i=self.BS, t=slot)
 		return torch.Tensor(data)

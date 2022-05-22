@@ -53,7 +53,7 @@ class Stage_Two_Pointer:
         '''
             cfg 放在外面,只做一次初始化就可以了
         '''
-        for i in range(self._env.param.M):
+        for i in range(self._env.config['M']):
             self.env.BS = i
             '''
                 self._env.get_BS_tasks_external(BS_ID=i)

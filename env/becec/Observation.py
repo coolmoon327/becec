@@ -133,7 +133,7 @@ class Observation(object):
         elif action_mode == 1:
             # 方案二 - 用类似 one hot 的方式，从每 (M+1) 个数中选择一个最大的，对应的下标就是选择的 BS
             n_tasks = n_tasks
-            action = np.zeros(1, n_tasks)
+            action = np.zeros((1, n_tasks))
             for i in range(n_tasks):
                 first_index = i*(M+1)
                 last_index = (i+1)*(M+1) - 1
@@ -147,7 +147,7 @@ class Observation(object):
         log_BS = []
         for n in range(batch_begin_index, next_batch_begin_index):
             task = env.task_set[n]
-            target_BS = int(round(action[index]))
+            target_BS = int(round(action[0][index]))
             index += 1
             if not 0 <= target_BS <= M:
                 print(f"BS number {target_BS} is out of range!")
