@@ -38,7 +38,7 @@ class Stage_Two_Pointer:
         :param env:
         '''
         self._env = env
-        self.cfg = load_pkl(pkl_parser().path)
+        self.cfg = argparser(env)
         self.env = Env_tsp(self.cfg)
         self.test = Test(self.cfg, self.env, self._env)
         self.cost = 0
