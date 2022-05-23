@@ -51,10 +51,14 @@ def argparser(env):
 	# GPU
 	parser.add_argument('-cd', '--cuda_dv', metavar = 'CD', type = str, default = '0', help = 'os CUDA_VISIBLE_DEVICE, default single GPU')
 	# para = Parameter(M=50, T=100)
-	args = parser.parse_args(['-m=test', '-t=10', f'-sl={env.param.delta_t}', f'-s={1}',  # f'-s={env.param.frame}
+	args = parser.parse_args(['-m=test', f"-t={env.config['n_tasks']}", 
+	f"-sl={env.config['delta_t']}", f'-s={1}',  # f'-s={env.param.frame}
                            '-b=1', '-ap=./env/becec/stage_two/Pt/train10_0414_14_54_step1179000_act.pt', 
-                           f'--seed={env.param.seed}', '-ls=10']) # 传入参数的位置
-	return args
+                           f"--seed={env.config['random_seed']}",
+						    '-ls=10']) # 传入参数的位置
+	dump_pkl(args)
+	cfg = load_pkl(pkl_parser().path)
+	return cfg
 
 class Config():
 	def __init__(self, **kwargs):	
