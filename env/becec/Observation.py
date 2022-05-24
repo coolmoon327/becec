@@ -2,6 +2,7 @@ import numpy
 import numpy as np
 import time
 import torch
+import copy
 from gym import spaces
 
 from .Environment import Environment
@@ -49,12 +50,11 @@ class Observation(object):
         # 需要验证是否正确
         env.task_set[batch_begin_index:next_batch_begin_index] = temp_list
 
-    def get_state(self):
+    def get_state(self, env):
         M = self.config['M']
         delta_t = self.config['delta_t']
         state_mode = self.config['state_mode']
         n_tasks = self.config['n_tasks']
-        env = self._env
         
         state = [0. for _ in range(self.n_observations)]
 
@@ -93,6 +93,7 @@ class Observation(object):
                 index += 2
         
         # 如果任务未满一批，剩下的全为 0.
+        # TODO check in frame_mode 1, whether the batch index is correct
         batch_begin_index = env.task_batch_num * n_tasks  # 批首任务的下标
         next_batch_begin_index = min((env.task_batch_num+1) * n_tasks, len(env.task_set))    # 下一批首任务的下标
         
@@ -133,12 +134,12 @@ class Observation(object):
         elif action_mode == 1:
             # 方案二 - 用类似 one hot 的方式，从每 (M+1) 个数中选择一个最大的，对应的下标就是选择的 BS
             n_tasks = n_tasks
-            action = np.zeros((1, n_tasks))
+            action = np.zeros(n_tasks)
             for i in range(n_tasks):
                 first_index = i*(M+1)
                 last_index = (i+1)*(M+1) - 1
                 one_hot = action_raw[first_index:last_index+1]
-                action[0][i] = np.argmax(one_hot)
+                action[i] = np.argmax(one_hot)
         
         batch_begin_index = env.task_batch_num * n_tasks  # 批首任务的下标
         next_batch_begin_index = min((env.task_batch_num+1) * n_tasks, len(env.task_set))  # 下一批首任务的下标
@@ -147,7 +148,7 @@ class Observation(object):
         log_BS = []
         for n in range(batch_begin_index, next_batch_begin_index):
             task = env.task_set[n]
-            target_BS = int(round(action[0][index]))
+            target_BS = int(round(action[index]))
             index += 1
             if not 0 <= target_BS <= M:
                 print(f"BS number {target_BS} is out of range!")
@@ -160,7 +161,7 @@ class Observation(object):
             else:
                 log_BS.append(target_BS)
                 env.schedule_task_to_BS(task=task, BS_ID=target_BS)
-        print(f"Target BS in stage one: {log_BS}")
+        # print(f"Slot {self._env.timer} --- Target BS in stage one: {log_BS}")
     
     def seed(self, seed):
         self._env.seed(seed)
@@ -173,9 +174,18 @@ class Observation(object):
         self.reset()
         # TODO more close opetation?
     
+    def go_next_frame(self):
+        # TODO 实现按照到达任务数量的 frame 更新
+        # TODO 验证是否会超出 T，以及有无影响
+        while True:
+            self._env.next()
+            if self._env.is_end_of_frame():
+                break
+
     def reset(self):
         self._env.reset()
-        return self.get_state()
+        self.go_next_frame()    # 从第一个 frame 结束时开始
+        return self.get_state(self._env)
     
     def step(self, action):
         # 1. 执行第一阶段
@@ -186,15 +196,19 @@ class Observation(object):
         reward = u - c
     
         # 3. 环境更新到下一个 frame
-        # TODO 实现按照到达任务数量的 frame 更新
-        # TODO 验证是否会超出 T，以及有无影响
-        while True:
-            self._env.next()
-            if self._env.is_end_of_frame():
-                break
+        if self.config['frame_mode'] == 0:
+            if self._env.is_end_of_frame:
+                self.go_next_frame()
+                s_ = self.get_state(self._env)
+            else:
+                self._env.next_task_batch
+                env = copy.deepcopy(self._env)
+                s_ = self.get_state(env)    # fake update, just get new s_
+                # may lead to sth wrong, so don't use frame_mode 0 in D4PG
+        elif self.config['frame_mode'] == 1:
+            self.go_next_frame()
+            s_ = self.get_state(self._env)
     
-        s_ = self.get_state()
-        
         # 更新到下一个 frame 后，如果 timer 溢出，说明 done
         # TODO done 所在的 frame 之后可能还有几个 slots，是否影响？
         done = (self._env.timer > self.config['T']-1)

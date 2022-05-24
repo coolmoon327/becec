@@ -8,14 +8,14 @@ num_agents: 1
 
 model: d4pg
 batch_size: 256
-num_steps_train: 30_000 # number of episodes from all agents
+num_steps_train: 1_000_000 # number of episodes from all agents
 max_ep_length: 1000 # maximum number of steps per episode
-replay_mem_size: 1000000 # maximum capacity of replay memory
+replay_mem_size: 1_000_000 # maximum capacity of replay memory
 priority_alpha: 0.6 # controls the randomness vs prioritisation of the prioritised sampling (0.0 = Uniform sampling, 1.0 = Greedy prioritisation)
 priority_beta_start: 0.4 # starting value of beta - controls to what degree IS weights influence the gradient updates to correct for the bias introduces by priority sampling (0 - no correction, 1 - full correction)
 priority_beta_end: 1.0 # beta will be linearly annelaed from its start value to this value thoughout training
 discount_rate: 0.99 # Discount rate (gamma) for future rewards
-n_step_returns: 5 # number of future steps to collect experiences for N-step returns
+n_step_returns: 1 # number of future steps to collect experiences for N-step returns
 update_agent_ep: 1 # agent gets latest parameters from learner every update_agent_ep episodes
 replay_queue_size: 1024 # queue with replays from all the agents
 batch_queue_size: 64 # queue with batches given to learner
@@ -54,12 +54,18 @@ frame: 10 # the length of a frame (warning: will be discarded)
 
 n_tasks: 10 # number of tasks in a group
 
+# frame_mode
+# plan 0: set a solid frame length
+#         can be used in D4PG only when n_tasks is big enough! (Lax implementation)
+# plan 1: when number of tasks in cache reaches n_tasks, generate a new frame
+frame_mode: 1
+
 # state
-# plan 1: observation = BS Info (delta_t slots of C & p) + Task Info (w, u_0, alpha)
-# plan 2: observation = BS Info (delta_t slots of C & p cast to 2 dimensions) + Task Info (w, u_0, alpha)
+# plan 0: observation = BS Info (delta_t slots of C & p) + Task Info (w, u_0, alpha)
+# plan 1: observation = BS Info (delta_t slots of C & p cast to 2 dimensions) + Task Info (w, u_0, alpha)
 state_mode: 1
 
 # action
-# 方案一 - 行为内容：任务调度（目标基站） 输出 [-1, 1] 量化成 M+1 个基站编号（其中一个是 null）
-# 方案二 - 行为内容：one-hot    输出 (M+1) 个 [-1, 1] 为一组，表示该任务调度到各基站上去的 one-hot 概率
+# plan 0: action = target BS numbers -- for each task, output [-1, 1] and quantify to  M+1 number (M BSs + 1 null)
+# plan 1: action = one-hot -- for each task, output (M+1)*[-1, 1] as a group, indicates the one-hot rate of BSs
 action_mode: 1

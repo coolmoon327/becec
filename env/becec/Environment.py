@@ -26,25 +26,27 @@ class Environment:
         self.config = config
         self.BS = [BaseStation(BS_ID=j, config=config) for j in range(config['M'])]
         self.timer = 0
-        self.frame_timer = 0
+        
         self.task_set = []
+               
+        # frame_mode 0 only
+        self.frame_timer = 0
         self.task_batch_num = 0
 
+        # frame_mode 1 only
+        self.extra_task_set = [] # in frame_mode 1, when the frame has more than n_tasks tasks, the extra tasks will be cached until next frame
+ 
     def reset(self):
         self.timer = 0
+        self.task_set.clear()
+        
         self.frame_timer = 0
-        self.task_set = []
         self.task_batch_num = 0
+
+        self.extra_task_set.clear()
+
         for bs in self.BS:
             bs.reset()
-
-    def _get_frame_end_slot(self):
-        """
-        获取当前 timer 所在 frame 中的最后一个 slot 的编号
-        :return:    the slot number
-        """
-        frame = self.config['frame']
-        return frame - 1 - self.frame_timer + self.timer
 
     def is_resource_enough_in_BS(self, task: Task, BS_ID: int):
         """该方法用于第一阶段调度
@@ -111,27 +113,66 @@ class Environment:
             return []
         return self.BS[BS_ID].tasks_external
 
+    def next_task_batch(self):
+        """
+        在 scheduler 中将任务进行分批, 每处理完一批task, 执行一次该方法
+        :return:        当前批是否已经不可行（已经没有对应的任务）
+        """
+        self.task_batch_num += 1
+
+        return self.task_batch_num  * self.config['n_tasks'] + 1 > len(self.task_set)
+
+    def _get_frame_end_slot(self):
+        """
+        获取当前 timer 所在 frame 中的最后一个 slot 的编号
+        :return:    the slot number
+        """
+        frame = self.config['frame']
+        return frame - 1 - self.frame_timer + self.timer
+
     def is_end_of_frame(self):
         """
             Determine if this timer is the end of a frame
         """
-        return self._get_frame_end_slot() == self.timer
+        if self.config['frame_mode'] == 0:
+            return self._get_frame_end_slot() == self.timer
+        elif self.config['frame_mode'] == 1:
+            return len(self.task_set) >= self.config['n_tasks']
 
     def next(self):
-        self.task_batch_num = 0
         self.timer += 1
-        self.frame_timer = (self.frame_timer + 1) % self.config['frame']
-        if self.frame_timer == 0:
-            # 新 frame 开始清空任务队列
-            self.task_set.clear()
 
-        frame_end_slot = self._get_frame_end_slot()
-        for bs in self.BS:
-            tasks = bs.next()
-            # 把 task 的到达时间重新设置为 frame 中最后一个 slot 的编号
-            for task in tasks:
-                task.arrival_time = frame_end_slot
-            self.task_set += tasks
+        if self.config['frame_mode'] == 0:
+            self.task_batch_num = 0
+            self.frame_timer = (self.frame_timer + 1) % self.config['frame']
+            if self.frame_timer == 0:
+                # 新 frame 开始清空任务队列
+                self.task_set.clear()
+
+            frame_end_slot = self._get_frame_end_slot()
+            for bs in self.BS:
+                tasks = bs.next()
+                # 把 task 的到达时间重新设置为 frame 中最后一个 slot 的编号
+                for task in tasks:
+                    task.arrival_time = frame_end_slot
+                self.task_set += tasks
+        elif self.config['frame_mode'] == 1:
+            # TODO check
+            self.task_set += self.extra_task_set
+            self.extra_task_set.clear()
+
+            for bs in self.BS:
+                tasks = bs.next()
+                self.task_set += tasks
+            
+            while len(self.task_set) > self.config['n_tasks']:
+                self.extra_task_set.append(self.task_set.pop(-1))
+
+            if self.is_end_of_frame():
+                for task in self.task_set:
+                    # the extra tasks will be set next frame_end's timer
+                    task.arrival_time = self.timer
+
 
     def C(self, i: int, t: int):
         """
@@ -195,18 +236,6 @@ class Environment:
         
         with open(path, 'ab') as f:
             pickle.dump(self.BS, f)
-
-    # def setSeed(self, seed: int):
-    #     pass
-
-    def next_task_batch(self):
-        """
-        在 scheduler 中将任务进行分批，每处理完一批task，执行一次该方法
-        :return:        当前批是否已经不可行（已经没有对应的任务）
-        """
-        self.task_batch_num += 1
-
-        return self.task_batch_num  * self.config['n_tasks'] + 1 > len(self.task_set)
 
     def clear_tasks_at_BS(self, BS_ID: int):
         self.BS[BS_ID].clear_tasks()

@@ -74,7 +74,7 @@ class Stage_Two_Pointer:
                 '''
 
                 if score == 5000.:
-                    print(f"target bs {i} has no more capacity!")
+                    # print(f"target bs {i} has no more capacity!")
                     if penalty_mode == 0:
                         self.u += -1000. * num
                     elif penalty_mode == 1:
