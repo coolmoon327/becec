@@ -1,8 +1,8 @@
 # Environment parameters
 
 env: BECEC
-random_seed: 2019
-num_agents: 1
+random_seed: 2022
+num_agents: 5
 
 # Training parameters
 
@@ -62,8 +62,9 @@ frame_mode: 1
 
 # state
 # plan 0: observation = BS Info (delta_t slots of C & p) + Task Info (w, u_0, alpha)
-# plan 1: observation = BS Info (delta_t slots of C & p cast to 2 dimensions) + Task Info (w, u_0, alpha)
-state_mode: 1
+# plan 1: observation = BS Info (delta_t slots of C & p) cast to 2 dimensions) + Task Info (w, u_0, alpha)
+# plan 2: observation = BS Info (delta_t slots of C) + Task Info (w, u_0, alpha)
+state_mode: 2
 
 # action
 # plan 0: action = target BS numbers -- for each task, output [-1, 1] and quantify to  M+1 number (M BSs + 1 null)

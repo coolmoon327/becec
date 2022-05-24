@@ -64,8 +64,8 @@ class Observation(object):
             # 该方案需要配合修改 parameter 的 n_observations 属性
             
             if state_mode == 0:
-            # 方案一：直接把 delta_t 个 slots 的 c 和 p 记录下来作为状态
-            # n_observations = M*delta_t*2 + n_tasks*3
+                # 方案一：直接把 delta_t 个 slots 的 c 和 p 记录下来作为状态
+                # n_observations = M*delta_t*2 + n_tasks*3
                 for t in range(delta_t):
                     state[index] = env.C(i, t) / 1e4
                     if env.p(i, t) < 1. :
@@ -91,6 +91,13 @@ class Observation(object):
                 state[index] = s1
                 state[index+1] = s2
                 index += 2
+            
+            elif state_mode == 2:
+                # 方案一：直接把 delta_t 个 slots 的 c 记录下来作为状态
+                # n_observations = M*delta_t + n_tasks*3
+                for t in range(delta_t):
+                    state[index] = env.C(i, t) / 1e4
+                    index += 1
         
         # 如果任务未满一批，剩下的全为 0.
         # TODO check in frame_mode 1, whether the batch index is correct
