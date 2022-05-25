@@ -7,17 +7,9 @@ Description: 打开koroFileHeader查看配置 进行设置: https://github.com/O
 FilePath: /own_work/stage_two/Stage_Two_Pointer.py
 '''
 import numpy as np
-
-# from stage_one.Stage_One_Observation import Stage_One_Observation
-
-# import torch
-# from stage_one.RL.ddpg import DDPG
-# from stage_one.RL.normalized_actions import NormalizedActions
-# from stage_one.RL.ounoise import OUNoise
-# from stage_one.RL.param_noise import AdaptiveParamNoiseSpec, ddpg_distance_metric
-# from stage_one.RL.replay_memory import ReplayMemory, Transition
 import os
 import sys
+
 from env.becec.stage_two.config import Config, load_pkl, pkl_parser, argparser, dump_pkl
 from env.becec.stage_two.env import Env_tsp
 from env.becec.stage_two.test import Test
@@ -28,7 +20,7 @@ noise_scale = 0.3
 batch_size = 128
 updates_per_step = 5
 
-penalty_mode = 0
+penalty_mode = 1
 
 class Stage_Two_Pointer:
     def __init__(self, env: Environment):
@@ -74,7 +66,7 @@ class Stage_Two_Pointer:
                 '''
 
                 if score == 5000.:
-                    # print(f"target bs {i} has no more capacity!")
+                    print(f"target bs {i} has no more capacity!")
                     if penalty_mode == 0:
                         self.u += -1000. * num
                     elif penalty_mode == 1:
@@ -84,7 +76,7 @@ class Stage_Two_Pointer:
                             task = tasks[t]
                             task_size += task.cpu_requirement()
                         bs_remain = 0.
-                        for t in range(self._env.param.delta_t):
+                        for t in range(self._env.config["delta_t"]):
                             c = self._env.C(i, t)
                             bs_remain += c
                         throw_num = np.ceil((task_size-bs_remain) / (task_size/num))

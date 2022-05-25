@@ -62,7 +62,7 @@ def read_config(path):
     Returns (dict): configuration object.
     """
     with open(path, 'r') as ymlfile:
-        cfg = yaml.load(ymlfile)
+        cfg = yaml.safe_load(ymlfile)
     return cfg
 
 

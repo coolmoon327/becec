@@ -123,7 +123,7 @@ class Agent(object):
 
             # Log metrics
             step = update_step.value
-            self.logger.scalar_summary(f"agent_{self.agent_type}/reward", episode_reward, step)
+            self.logger.scalar_summary(f"agent_{self.agent_type}/episode_reward", episode_reward, step)
             self.logger.scalar_summary(f"agent_{self.agent_type}/episode_timing", time.time() - ep_start_time, step)
 
             # Saving agent

@@ -28,12 +28,13 @@ class Environment:
         self.timer = 0
         
         self.task_set = []
-               
+
         # frame_mode 0 only
         self.frame_timer = 0
         self.task_batch_num = 0
 
         # frame_mode 1 only
+        self.clear_flag = False
         self.extra_task_set = [] # in frame_mode 1, when the frame has more than n_tasks tasks, the extra tasks will be cached until next frame
  
     def reset(self):
@@ -43,6 +44,7 @@ class Environment:
         self.frame_timer = 0
         self.task_batch_num = 0
 
+        self.frame_end = False
         self.extra_task_set.clear()
 
         for bs in self.BS:
@@ -158,6 +160,11 @@ class Environment:
                 self.task_set += tasks
         elif self.config['frame_mode'] == 1:
             # TODO check
+            if self.clear_flag:
+                self.task_set.clear()
+                self.clear_flag = False
+            if self.is_end_of_frame():
+                self.clear_flag = True
             self.task_set += self.extra_task_set
             self.extra_task_set.clear()
 

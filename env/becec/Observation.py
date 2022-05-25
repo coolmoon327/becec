@@ -96,7 +96,7 @@ class Observation(object):
                 # 方案一：直接把 delta_t 个 slots 的 c 记录下来作为状态
                 # n_observations = M*delta_t + n_tasks*3
                 for t in range(delta_t):
-                    state[index] = env.C(i, t) / 1e4
+                    state[index] = np.log2(env.C(i, t)+1e-6)
                     index += 1
         
         # 如果任务未满一批，剩下的全为 0.
@@ -105,7 +105,7 @@ class Observation(object):
         next_batch_begin_index = min((env.task_batch_num+1) * n_tasks, len(env.task_set))    # 下一批首任务的下标
         
         # 任务信息排序
-        self._sort_batch_tasks(batch_begin_index, next_batch_begin_index)
+        # self._sort_batch_tasks(batch_begin_index, next_batch_begin_index)
 
         for n in range(batch_begin_index, next_batch_begin_index):
             state[index] = env.task_set[n].w / 10.
@@ -168,7 +168,7 @@ class Observation(object):
             else:
                 log_BS.append(target_BS)
                 env.schedule_task_to_BS(task=task, BS_ID=target_BS)
-        # print(f"Slot {self._env.timer} --- Target BS in stage one: {log_BS}")
+        print(f"Slot {self._env.timer} --- Target BS in stage one: {log_BS}")
     
     def seed(self, seed):
         self._env.seed(seed)
@@ -201,7 +201,8 @@ class Observation(object):
         # 2. 执行第二阶段（将第二阶段的算法当作一个黑盒模块）
         c, u = self.alg_2.execute()
         reward = u - c
-    
+        print(f"reward: {reward}")
+
         # 3. 环境更新到下一个 frame
         if self.config['frame_mode'] == 0:
             if self._env.is_end_of_frame:

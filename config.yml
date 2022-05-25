@@ -21,9 +21,9 @@ replay_queue_size: 1024 # queue with replays from all the agents
 batch_queue_size: 64 # queue with batches given to learner
 replay_memory_prioritized: 0
 num_episode_save: 100
-# device: cuda
-device: cpu
-agent_device: cpu
+device: cuda
+# device: cpu
+agent_device: cuda
 save_buffer_on_disk: 0
 save_reward_threshold: 1 # difference in best reward to save agent model
 
@@ -32,11 +32,11 @@ save_reward_threshold: 1 # difference in best reward to save agent model
 
 critic_learning_rate: 0.0005
 actor_learning_rate: 0.0005
-dense_size: 400 # size of the 2 hidden layers in networks
+dense_size: 512 # size of the 2 hidden layers in networks
 final_layer_init: 0.003
 num_atoms: 51 # number of atoms in output layer of distributed critic
 v_min: -10000 # lower bound of critic value output distribution
-v_max: 20000 # upper bound of critic value output distribution
+v_max: 5000 # upper bound of critic value output distribution
 tau: 0.001 # parameter for soft target network updates
 
 # TODO 想办法将 reward 的取值设计得在某个可控范围内，或者想办法找到 v_min 和 v_max
@@ -69,4 +69,4 @@ state_mode: 2
 # action
 # plan 0: action = target BS numbers -- for each task, output [-1, 1] and quantify to  M+1 number (M BSs + 1 null)
 # plan 1: action = one-hot -- for each task, output (M+1)*[-1, 1] as a group, indicates the one-hot rate of BSs
-action_mode: 1
+action_mode: 0

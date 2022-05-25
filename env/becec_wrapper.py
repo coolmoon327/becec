@@ -7,11 +7,19 @@ class BECEC(EnvWrapper):
         self.config = config
         self.env_name = config['env']
         self.env.load_config(config)
+        self.log_min = 1e5
+        self.log_max = -1e5
 
     def normalise_state(self, state):
         return state
 
     def normalise_reward(self, reward):
+        if self.log_max < reward:
+            self.log_max = reward
+            print(f"Max reward: {self.log_max}")
+        if self.log_min > reward:
+            self.log_min = reward
+            print(f"Min reward: {self.log_min}")
         return reward
     
     @classmethod
