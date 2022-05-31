@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 from config import Config, load_pkl, pkl_parser
 
 class PtrNet2(nn.Module):
@@ -84,7 +83,7 @@ class PtrNet2(nn.Module):
 		V = self.Vec.unsqueeze(0).unsqueeze(0).repeat(ref.size(0), 1, 1)
 		u = torch.bmm(V, torch.tanh(u1 + u2)).squeeze(1)
 		# V: (batch, 1, 128) * u1+u2: (batch, 128, city_t) => u: (batch, 1, city_t) => (batch, city_t)
-		a = F.softmax(u, dim = 1)
+		a = torch.softmax(u, dim = 1)
 		d = torch.bmm(u2, a.unsqueeze(2)).squeeze(2)
 		# u2: (batch, 128, city_t) * a: (batch, city_t, 1) => d: (batch, 128)
 		return d

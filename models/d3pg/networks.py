@@ -1,7 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-
 
 class ValueNetwork(nn.Module):
     """Critic - return Q value from given states and actions. """
@@ -24,8 +22,8 @@ class ValueNetwork(nn.Module):
 
     def forward(self, state, action):
         x = torch.cat([state, action], 1)
-        x = F.relu(self.linear1(x))
-        x = F.relu(self.linear2(x))
+        x = torch.relu(self.linear1(x))
+        x = torch.relu(self.linear2(x))
         x = self.linear3(x)
         return x
 
@@ -51,9 +49,9 @@ class PolicyNetwork(nn.Module):
         self.to(device)
 
     def forward(self, state):
-        x = F.relu(self.linear1(state))
-        x = F.relu(self.linear2(x))
-        x = F.tanh(self.linear3(x))
+        x = torch.relu(self.linear1(state))
+        x = torch.relu(self.linear2(x))
+        x = torch.tanh(self.linear3(x))
 
         return x
 

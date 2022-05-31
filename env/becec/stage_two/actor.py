@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 from env.becec.stage_two.config import Config, load_pkl, pkl_parser
 from env.becec.stage_two.env import Env_tsp
@@ -111,7 +110,7 @@ class PtrNet1(nn.Module):
 		u = torch.bmm(V, torch.tanh(u1 + u2)).squeeze(1)
 		# V: (batch, 1, 128) * u1+u2: (batch, 128, city_t) => u: (batch, 1, city_t) => (batch, city_t)
 		u = u - inf * mask # inf : whether you are concerned about mask ?
-		a = F.softmax(u / self.softmax_T, dim = 1) # a contain the probability of visiting some cities.
+		a = torch.softmax(u / self.softmax_T, dim = 1) # a contain the probability of visiting some cities.
 		d = torch.bmm(u2, a.unsqueeze(2)).squeeze(2)
 		# u2: (batch, 128, city_t) * a: (batch, city_t, 1) => d: (batch, 128)
 		return d # 返回关注每个城市的关注程度，或者说有多大的概率去访问它

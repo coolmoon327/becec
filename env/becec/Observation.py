@@ -24,10 +24,10 @@ class Observation(object):
         # TODO check whether it works while paralleling
         if self._env.is_local_file_exsisted():
             self._env.loadEnv()
-            print(self._env.BS[0].mmpp.steady_dist)
+            print(f"Loaded environment. Steady distribution of BS 0 is {self._env.BS[0].mmpp.steady_dist}")
         else:
             self._env.saveEnv()
-            print(self._env.BS[0].mmpp.steady_dist)
+            print(f"Saved environment. Steady distribution of BS 0 is {self._env.BS[0].mmpp.steady_dist}")
         
         self.n_observations = config['state_dim']
         self.n_actions = config['action_dim']
@@ -67,7 +67,7 @@ class Observation(object):
                 # 方案一：直接把 delta_t 个 slots 的 c 和 p 记录下来作为状态
                 # n_observations = M*delta_t*2 + n_tasks*3
                 for t in range(delta_t):
-                    state[index] = env.C(i, t) / 1e4
+                    state[index] = env.C(i, t) / 1e2
                     if env.p(i, t) < 1. :
                         state[index+1] = env.p(i, t) * 100
                     else:
@@ -96,7 +96,7 @@ class Observation(object):
                 # 方案一：直接把 delta_t 个 slots 的 c 记录下来作为状态
                 # n_observations = M*delta_t + n_tasks*3
                 for t in range(delta_t):
-                    state[index] = np.log2(env.C(i, t)+1e-6)
+                    state[index] = env.C(i, t)/100.
                     index += 1
         
         # 如果任务未满一批，剩下的全为 0.
@@ -158,7 +158,7 @@ class Observation(object):
             target_BS = int(round(action[index]))
             index += 1
             if not 0 <= target_BS <= M:
-                print(f"BS number {target_BS} is out of range!")
+                # print(f"BS number {target_BS} is out of range!")
                 # 修剪范围
                 target_BS = min(M, target_BS)
                 target_BS = max(0, target_BS)
@@ -168,7 +168,7 @@ class Observation(object):
             else:
                 log_BS.append(target_BS)
                 env.schedule_task_to_BS(task=task, BS_ID=target_BS)
-        print(f"Slot {self._env.timer} --- Target BS in stage one: {log_BS}")
+        # print(f"Slot {self._env.timer} --- Target BS in stage one: {log_BS}")
     
     def seed(self, seed):
         self._env.seed(seed)
@@ -201,7 +201,7 @@ class Observation(object):
         # 2. 执行第二阶段（将第二阶段的算法当作一个黑盒模块）
         c, u = self.alg_2.execute()
         reward = u - c
-        print(f"reward: {reward}")
+        # print(f"reward: {reward}")
 
         # 3. 环境更新到下一个 frame
         if self.config['frame_mode'] == 0:
