@@ -69,7 +69,7 @@ class LearnerD3PG(object):
         expected_value = reward + not_done * self.gamma * target_value
         expected_value = torch.clamp(expected_value, min_value, max_value)
 
-        value = self.value_net(state, action)
+        value = self.value_net(state, action.detach())
         value_loss = self.value_criterion(value, expected_value.detach())
         value_loss = value_loss.mean()
 

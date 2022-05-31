@@ -25,7 +25,7 @@ class Agent(object):
 
         # Create environment
         self.env_wrapper = create_env_wrapper(config)
-        self.ou_noise = OUNoise(dim=config["action_dim"], low=config["action_low"], high=config["action_high"])
+        self.ou_noise = OUNoise(dim=config["action_dim"], low=config["action_low"], high=config["action_high"], decay_period=config['decay_period'])
         self.ou_noise.reset()
 
         self.actor = policy
@@ -76,8 +76,28 @@ class Agent(object):
                 else:
                     action = action.detach().cpu().numpy().flatten()
                 next_state, reward, done = self.env_wrapper.step(action)
-                num_steps += 1
 
+                if self.agent_type == "exploitation" and num_steps % 50 == 0:
+                    # if self.config['env'] == 'BECEC':
+                    #     M = self.config['M']
+                    #     n_tasks = self.config['n_tasks']
+                    #     action_mode = self.config['action_mode']
+                    #     if action_mode == 0:
+                    #         print(f"Exploitation:\n action={(action+1)*M/2}\n reward={reward}")
+                    #     else:
+                    #         import numpy as np
+                    #         a = np.zeros(n_tasks)
+                    #         for i in range(n_tasks):
+                    #             first_index = i*(M+1)
+                    #             last_index = (i+1)*(M+1) - 1
+                    #             one_hot = action[first_index:last_index+1]
+                    #             a[i] = np.argmax(one_hot)
+                    #         print(f"Exploitation:\n action={a}\n reward={reward}")
+                    # else:
+                    #     print(f"Exploitation:\n action={action}\n reward={reward}")
+                    print(f"Exploitation:\n action={action}\n reward={reward}")
+
+                num_steps += 1
                 if num_steps == self.max_steps:
                     done = False
                 episode_reward += reward
@@ -120,13 +140,18 @@ class Agent(object):
                             except:
                                pass
                     break
+                
+                # # TODO 此处调试用，如果在内部更新的效果更好，则后续进行修改
+                # # 如果每进行完一个 episode 才获取一次，队列可能一直都取不完
+                # if self.agent_type == "exploration" and num_steps % 50 == 0:
+                #     self.update_actor_learner(learner_w_queue, training_on)
 
             # Log metrics
             step = update_step.value
             self.logger.scalar_summary(f"agent_{self.agent_type}/episode_reward", episode_reward, step)
             self.logger.scalar_summary(f"agent_{self.agent_type}/episode_timing", time.time() - ep_start_time, step)
 
-            if False:
+            if self.config["save_reward_threshold"] >= 0:
                 # Saving agent
                 reward_outperformed = episode_reward - best_reward > self.config["save_reward_threshold"]
                 time_to_save = self.local_episode % self.num_episode_save == 0

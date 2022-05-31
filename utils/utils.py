@@ -7,7 +7,7 @@ from multiprocessing import Queue
 
 
 class OUNoise(object):
-    def __init__(self, dim, low, high, mu=0.0, theta=0.15, max_sigma=0.3, min_sigma=0.3, decay_period=10_000):
+    def __init__(self, dim, low, high, mu=0.0, theta=0.15, max_sigma=0.4, min_sigma=0.2, decay_period=10_000):
         self.mu = mu
         self.theta = theta
         self.sigma = max_sigma

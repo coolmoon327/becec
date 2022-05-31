@@ -123,6 +123,8 @@ class Observation(object):
         action_mode = self.config['action_mode']
         env = self._env
         
+        num_null = 0
+
         if type(action_raw) is np.ndarray:
             action_raw = np.clip(action_raw, -1., 1.)
         else:
@@ -136,13 +138,13 @@ class Observation(object):
             action = np.round(action)
         elif action_mode == 1:
             # 方案二 - 用类似 one hot 的方式，从每 (M+1) 个数中选择一个最大的，对应的下标就是选择的 BS
-            n_tasks = n_tasks
             action = np.zeros(n_tasks)
             for i in range(n_tasks):
                 first_index = i*(M+1)
                 last_index = (i+1)*(M+1) - 1
                 one_hot = action_raw[first_index:last_index+1]
-                action[i] = np.argmax(one_hot)
+                action[i] = np.random.choice(np.where(one_hot==np.max(one_hot))[-1])
+                # action[i] = np.argmax(one_hot)
         
         batch_begin_index = env.task_batch_num * n_tasks  # 批首任务的下标
         next_batch_begin_index = min((env.task_batch_num+1) * n_tasks, len(env.task_set))  # 下一批首任务的下标
@@ -161,11 +163,13 @@ class Observation(object):
             if target_BS == M:
                 # null bs
                 log_BS.append(-1)
+                num_null += 1
             else:
                 log_BS.append(target_BS)
                 env.schedule_task_to_BS(task=task, BS_ID=target_BS)
         # print(f"Slot {self._env.timer} --- Target BS in stage one: {log_BS}")
-    
+        return num_null
+
     def seed(self, seed):
         self._env.seed(seed)
     
@@ -191,11 +195,11 @@ class Observation(object):
     
     def step(self, action):
         # 1. 执行第一阶段
-        self.execute(action)
+        num_null = self.execute(action)
     
         # 2. 执行第二阶段（将第二阶段的算法当作一个黑盒模块）
         c, u = self.alg_2.execute()
-        reward = u - c
+        reward = u - c + self._env.config['penalty'] * num_null
         # print(f"reward: {reward}")
 
         # 3. 环境更新到下一个 frame
