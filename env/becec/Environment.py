@@ -163,8 +163,7 @@ class Environment:
             if self.clear_flag:
                 self.task_set.clear()
                 self.clear_flag = False
-            if self.is_end_of_frame():
-                self.clear_flag = True
+            
             self.task_set += self.extra_task_set
             self.extra_task_set.clear()
 
@@ -179,6 +178,8 @@ class Environment:
                 for task in self.task_set:
                     # the extra tasks will be set next frame_end's timer
                     task.arrival_time = self.timer
+                
+                self.clear_flag = True  # 下个 slot 是新的 frame
 
 
     def C(self, i: int, t: int):

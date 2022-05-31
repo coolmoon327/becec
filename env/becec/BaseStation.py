@@ -256,12 +256,12 @@ class BaseStation:
         :param task:
         :return:                        0 for success, -1 for failure
         """
-        self.tasks_external.append(task)        # 在第二阶段对无法分配的任务进行惩罚，因此始终添加任务
-        if self.is_resource_enough(task=task):
-            return 0
-        else:
+        ret = 0
+        if not self.is_resource_enough(task=task):
             # 第一阶段的分配出现了问题，如果要使用 CMDP，可能需要在这里进行一些操作
-            return -1
+            ret = -1
+        self.tasks_external.append(task)        # 在第二阶段对无法分配的任务进行惩罚，因此始终添加任务
+        return ret
 
     def price_of_allocation(self, alloc_list):
         """

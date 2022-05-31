@@ -20,8 +20,6 @@ noise_scale = 0.3
 batch_size = 128
 updates_per_step = 5
 
-penalty_mode = 1
-
 class Stage_Two_Pointer:
     def __init__(self, env: Environment):
         '''
@@ -45,6 +43,9 @@ class Stage_Two_Pointer:
         '''
             cfg 放在外面,只做一次初始化就可以了
         '''
+        penalty = self._env.config['penalty']
+        penalty_mode = self._env.config['penalty_mode']
+
         for i in range(self._env.config['M']):
             self.env.BS = i
             '''
@@ -54,9 +55,8 @@ class Stage_Two_Pointer:
 
             tasks = self._env.get_BS_tasks_external(BS_ID=i)
 
-
             num = len(tasks)
-            if num:
+            while num:
                 self.test.search_tour()
                 score = self.test.score[0]
                 u = self.test.u[0]
@@ -68,7 +68,11 @@ class Stage_Two_Pointer:
                 if score == 5000.:
                     # print(f"target bs {i} has no more capacity!")
                     if penalty_mode == 0:
-                        self.u += -1000. * num
+                        self.u += penalty * num
+
+                        self._env.clear_tasks_at_BS(i) 
+                        break
+
                     elif penalty_mode == 1:
                         task_size = 0.
                         for t in range(num):
@@ -80,13 +84,21 @@ class Stage_Two_Pointer:
                             c = self._env.C(i, t)
                             bs_remain += c
                         throw_num = np.ceil((task_size-bs_remain) / (task_size/num))
-                        self.u += -1000. * throw_num
-                    # 清空队列
-                    self._env.clear_tasks_at_BS(i)
+                        self.u += penalty * throw_num
+                        
+                        self._env.clear_tasks_at_BS(i) 
+                        break
+
+                    elif penalty_mode == 2:
+                        self.u += penalty
+
                 else:
                     c = u + score
                     self.cost += c
                     self.u += u
+
+                    if c == 0:
+                        print(f"Warning: cost is 0! c={c} u={u} score={score}")
 
                     for t in range(num):
                         # print(i, t, len(self._env.get_BS_tasks_external(BS_ID=i)))
@@ -99,8 +111,18 @@ class Stage_Two_Pointer:
 
                         # allocate 会删除队列中的 task
                         self._env.allocate_task_at_BS(task=task, BS_ID=i, alloc_list=alloc_list)
+                    
+                    break
+
+                tasks.pop(-1)
+                num = len(tasks)
             else:
                 pass
+        
+            if len(self._env.get_BS_tasks_external(BS_ID=i)):
+                print(f"External tasks didn't be handled in BS {i}.")
+                self._env.clear_tasks_at_BS(i) 
+        
         cost = self.cost
         u = self.u
         self.cost = self.u = 0.

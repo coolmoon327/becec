@@ -8,7 +8,6 @@ from gym import spaces
 from .Environment import Environment
 from .stage_two.Stage_Two_Pointer import Stage_Two_Pointer
 
-# TODO 添加一种 state 模式，不记录具体的 p，只记录 p_coef
 
 class Observation(object):
     def __init__(self, config={}):
@@ -21,7 +20,6 @@ class Observation(object):
         
         self.alg_2 = Stage_Two_Pointer(self._env)
         
-        # TODO check whether it works while paralleling
         if self._env.is_local_file_exsisted():
             self._env.loadEnv()
             print(f"Loaded environment. Steady distribution of BS 0 is {self._env.BS[0].mmpp.steady_dist}")
@@ -67,7 +65,7 @@ class Observation(object):
                 # 方案一：直接把 delta_t 个 slots 的 c 和 p 记录下来作为状态
                 # n_observations = M*delta_t*2 + n_tasks*3
                 for t in range(delta_t):
-                    state[index] = env.C(i, t) / 1e2
+                    state[index] = env.C(i, t) / 1e3
                     if env.p(i, t) < 1. :
                         state[index+1] = env.p(i, t) * 100
                     else:
@@ -79,11 +77,11 @@ class Observation(object):
                 #  n_observations = M*2 + n_tasks*3
                 s1 = 0.
                 s2 = 0.
-                gamma = 0.99
+                gamma = 0.95
                 for t in range(delta_t):
-                    c = env.C(i, t) / (4. * 1e4)
+                    c = env.C(i, t) / 1e3
                     if env.p(i, t) < 1. :
-                        p = env.p(i, t) * 100.
+                        p = env.p(i, t) * 1e3
                     else:
                         p = env.p(i, t)
                     s1 += c
@@ -96,11 +94,10 @@ class Observation(object):
                 # 方案一：直接把 delta_t 个 slots 的 c 记录下来作为状态
                 # n_observations = M*delta_t + n_tasks*3
                 for t in range(delta_t):
-                    state[index] = env.C(i, t)/100.
+                    state[index] = env.C(i, t) / 1e3
                     index += 1
         
         # 如果任务未满一批，剩下的全为 0.
-        # TODO check in frame_mode 1, whether the batch index is correct
         batch_begin_index = env.task_batch_num * n_tasks  # 批首任务的下标
         next_batch_begin_index = min((env.task_batch_num+1) * n_tasks, len(env.task_set))    # 下一批首任务的下标
         
@@ -108,9 +105,9 @@ class Observation(object):
         # self._sort_batch_tasks(batch_begin_index, next_batch_begin_index)
 
         for n in range(batch_begin_index, next_batch_begin_index):
-            state[index] = env.task_set[n].w / 10.
-            state[index+1] = env.task_set[n].u_0 / 100.
-            state[index+2] = env.task_set[n].alpha / 10.
+            state[index] = env.task_set[n].w
+            state[index+1] = env.task_set[n].u_0
+            state[index+2] = env.task_set[n].alpha
             index += 3
         return numpy.array(state)
 
@@ -126,7 +123,6 @@ class Observation(object):
         action_mode = self.config['action_mode']
         env = self._env
         
-        # TODO 检查 actor 网络输出是否在 [-1., 1.]
         if type(action_raw) is np.ndarray:
             action_raw = np.clip(action_raw, -1., 1.)
         else:
@@ -182,7 +178,6 @@ class Observation(object):
         # TODO more close opetation?
     
     def go_next_frame(self):
-        # TODO 实现按照到达任务数量的 frame 更新
         # TODO 验证是否会超出 T，以及有无影响
         while True:
             self._env.next()

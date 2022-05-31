@@ -16,10 +16,10 @@ class BECEC(EnvWrapper):
     def normalise_reward(self, reward):
         if self.config['log_max'] < reward:
             self.config['log_max'] = reward
-            print(f"Max reward: {self.config['log_max']}")
+            # print(f"Max reward: {self.config['log_max']}")
         if self.config['log_min'] > reward:
             self.config['log_min'] = reward
-            print(f"Min reward: {self.config['log_min']}")
+            # print(f"Min reward: {self.config['log_min']}")
         return reward
     
     @classmethod
@@ -47,7 +47,6 @@ class BECEC(EnvWrapper):
             # 方案二 - 行为内容：one-hot    输出 (M+1) 个 [-1, 1] 为一组，表示该任务调度到各基站上去的 one-hot 概率
             n_actions = n_tasks * (M+1)
         
-        # TODO check whether these operations work for global
         config['state_dim'] = n_observations
         config['action_dim'] = n_actions
         config['action_low'] = -1.

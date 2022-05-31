@@ -2,7 +2,7 @@
 
 env: BECEC
 random_seed: 2022
-num_agents: 10
+num_agents: 8
 
 
 # Training parameters
@@ -26,8 +26,8 @@ save_reward_threshold: 1 # difference in best reward to save agent model
 
 # Network parameters
 
-critic_learning_rate: 0.0005
-actor_learning_rate: 0.0005
+critic_learning_rate: 0.0001
+actor_learning_rate: 0.00001
 dense_size: 512 # size of the 2 hidden layers in networks
 tau: 0.005 # parameter for soft target network updates
 
@@ -45,16 +45,22 @@ T: 130 # number of time slots
 frame: 10 # the length of a frame (warning: will be discarded)
 n_tasks: 10 # number of tasks in a group
 # frame_mode
-# plan 0: set a solid frame length
+# mode 0: set a solid frame length
 #         can be used in D4PG only when n_tasks is big enough! (Lax implementation)
-# plan 1: when number of tasks in cache reaches n_tasks, generate a new frame
+# mode 1: when number of tasks in cache reaches n_tasks, generate a new frame
 frame_mode: 1
 # state
-# plan 0: observation = BS Info (delta_t slots of C & p) + Task Info (w, u_0, alpha)
-# plan 1: observation = BS Info (delta_t slots of C & p) cast to 2 dimensions) + Task Info (w, u_0, alpha)
-# plan 2: observation = BS Info (delta_t slots of C) + Task Info (w, u_0, alpha)
+# mode 0: observation = BS Info (delta_t slots of C & p) + Task Info (w, u_0, alpha)
+# mode 1: observation = BS Info (delta_t slots of C & p) cast to 2 dimensions) + Task Info (w, u_0, alpha)
+# mode 2: observation = BS Info (delta_t slots of C) + Task Info (w, u_0, alpha)
 state_mode: 2
 # action
 # plan 0: action = target BS numbers -- for each task, output [-1, 1] and quantify to  M+1 number (M BSs + 1 null)
 # plan 1: action = one-hot -- for each task, output (M+1)*[-1, 1] as a group, indicates the one-hot rate of BSs
-action_mode: 1
+action_mode: 0
+# penalty
+# mode 0: throw all external_tasks in the busy BS, utinity += penalty*len(external_tasks)
+# mode 1: throw all external_tasks in the busy BS, utinity += penalty*len(exceeded_external_tasks)
+# mode 2: throw the last input task one by one, utinity += penalty*len(thrown_external_tasks)
+penalty_mode: 2
+penalty: -1000.

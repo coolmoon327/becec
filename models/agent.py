@@ -55,7 +55,7 @@ class Agent(object):
         best_reward = -float("inf")
         rewards = []
         while training_on.value:
-            episode_reward = 0
+            episode_reward = 0.
             num_steps = 0
             self.local_episode += 1
             self.global_episode.value += 1
@@ -126,13 +126,14 @@ class Agent(object):
             self.logger.scalar_summary(f"agent_{self.agent_type}/episode_reward", episode_reward, step)
             self.logger.scalar_summary(f"agent_{self.agent_type}/episode_timing", time.time() - ep_start_time, step)
 
-            # Saving agent
-            reward_outperformed = episode_reward - best_reward > self.config["save_reward_threshold"]
-            time_to_save = self.local_episode % self.num_episode_save == 0
-            if self.agent_type == "exploitation" and (time_to_save or reward_outperformed):
-                if episode_reward > best_reward:
-                    best_reward = episode_reward
-                self.save(f"local_episode_{self.local_episode}_reward_{best_reward:4f}")
+            if False:
+                # Saving agent
+                reward_outperformed = episode_reward - best_reward > self.config["save_reward_threshold"]
+                time_to_save = self.local_episode % self.num_episode_save == 0
+                if self.agent_type == "exploitation" and (time_to_save or reward_outperformed):
+                    if episode_reward > best_reward:
+                        best_reward = episode_reward
+                    self.save(f"local_episode_{self.local_episode}_reward_{best_reward:4f}")
 
             rewards.append(episode_reward)
             if self.agent_type == "exploration" and self.local_episode % self.config['update_agent_ep'] == 0:
