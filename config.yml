@@ -2,13 +2,13 @@
 
 env: BECEC
 random_seed: 2021
-num_agents: 1
+num_agents: 2
 
 
 # Training parameters
 
 model: d3pg
-batch_size: 512
+batch_size: 64
 num_steps_train: 1_000_000 # number of episodes from all agents
 max_ep_length: 1000 # maximum number of steps per episode
 replay_mem_size: 1_000_000 # maximum capacity of replay memory
@@ -18,10 +18,10 @@ update_agent_ep: 1 # agent gets latest parameters from learner every update_agen
 replay_queue_size: 1_024 # queue with replays from all the agents
 batch_queue_size: 64 # queue with batches given to learner
 num_episode_save: 100
-# device: cuda
-device: cpu
-agent_device: cpu
-save_reward_threshold: 1 # difference in best reward to save agent model
+device: cuda
+# device: cpu
+agent_device: cuda
+save_reward_threshold: -1 # difference in best reward to save agent model
 
 decay_period: 100
 
@@ -29,7 +29,7 @@ decay_period: 100
 
 critic_learning_rate: 0.0005
 actor_learning_rate: 0.00001
-dense_size: 256 # size of the 2 hidden layers in networks
+dense_size: 512 # size of the 2 hidden layers in networks
 tau: 0.005 # parameter for soft target network updates
 
 
@@ -42,7 +42,7 @@ results_path: results
 
 M: 20 # number of BSs
 delta_t: 30 # number of future slots the algorithm use to allocate at once
-T: 130 # number of time slots
+T: 230 # number of time slots
 frame: 10 # the length of a frame (warning: will be discarded)
 n_tasks: 10 # number of tasks in a group
 # frame_mode
@@ -51,10 +51,10 @@ n_tasks: 10 # number of tasks in a group
 # mode 1: when number of tasks in cache reaches n_tasks, generate a new frame
 frame_mode: 1
 # state
-# mode 0: observation = BS Info (delta_t slots of C & p) + Task Info (w, u_0, alpha)
-# mode 1: observation = BS Info (delta_t slots of C & p) cast to 2 dimensions) + Task Info (w, u_0, alpha)
-# mode 2: observation = BS Info (delta_t slots of C) + Task Info (w, u_0, alpha)
-state_mode: 2
+# mode 0: observation = BS Info (delta_t slots of C & p) + Task Info (w, alpha)
+# mode 1: observation = BS Info (delta_t slots of C) cast to 2 dimensions) + Task Info (w, alpha)
+# mode 2: observation = BS Info (delta_t slots of C) + Task Info (w, alpha)
+state_mode: 1
 # action
 # plan 0: action = target BS numbers -- for each task, output [-1, 1] and quantify to  M+1 number (M BSs + 1 null)
 # plan 1: action = one-hot -- for each task, output (M+1)*[-1, 1] as a group, indicates the one-hot rate of BSs

@@ -77,15 +77,15 @@ class Observation(object):
                 #  n_observations = M*2 + n_tasks*3
                 s1 = 0.
                 s2 = 0.
-                gamma = 0.95
+                gamma = 1.05
                 for t in range(delta_t):
                     c = env.C(i, t) / 1e3
-                    if env.p(i, t) < 1. :
-                        p = env.p(i, t) * 1e3
-                    else:
-                        p = env.p(i, t)
+                    # if env.p(i, t) < 1. :
+                    #     p = env.p(i, t) * 1e3
+                    # else:
+                    #     p = env.p(i, t)
                     s1 += c
-                    s2 = s2/gamma + c/p
+                    s2 = s2*gamma + c
                 state[index] = s1
                 state[index+1] = s2
                 index += 2
@@ -102,13 +102,14 @@ class Observation(object):
         next_batch_begin_index = min((env.task_batch_num+1) * n_tasks, len(env.task_set))    # 下一批首任务的下标
         
         # 任务信息排序
-        # self._sort_batch_tasks(batch_begin_index, next_batch_begin_index)
+        self._sort_batch_tasks(batch_begin_index, next_batch_begin_index)
 
         for n in range(batch_begin_index, next_batch_begin_index):
             state[index] = env.task_set[n].w
-            state[index+1] = env.task_set[n].u_0
-            state[index+2] = env.task_set[n].alpha
-            index += 3
+            state[index+1] = env.task_set[n].alpha
+            index += 2
+            # state[index+2] = env.task_set[n].u_0
+            # index += 3
         return numpy.array(state)
 
     def execute(self, action_raw):
@@ -199,7 +200,7 @@ class Observation(object):
     
         # 2. 执行第二阶段（将第二阶段的算法当作一个黑盒模块）
         c, u = self.alg_2.execute()
-        reward = u - c + self._env.config['penalty'] * num_null
+        reward = u - c + self._env.config['penalty']/3 * num_null
         # print(f"reward: {reward}")
 
         # 3. 环境更新到下一个 frame
