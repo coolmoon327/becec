@@ -36,6 +36,8 @@ def sampler_worker(config, replay_queue, batch_queue, replay_priorities_queue, t
     batch_size = config['batch_size']
     logger = Logger(f"{log_dir}/data_struct")
 
+    beta = config["priority_beta_start"]
+
     # Create replay buffer
     replay_buffer = create_replay_buffer(config)
 
@@ -57,11 +59,13 @@ def sampler_worker(config, replay_queue, batch_queue, replay_priorities_queue, t
             pass
 
         try:
-            batch = replay_buffer.sample(batch_size)
+            batch = replay_buffer.sample(batch_size, beta)
             batch_queue.put_nowait(batch)
         except:
             sleep(0.1)
             continue
+
+        
 
         # Log data structures sizes
         step = update_step.value

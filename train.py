@@ -11,7 +11,7 @@ parser.add_argument("--config", type=str, default='./config.yml', help="Path to 
 if __name__ == "__main__":
     # args = vars(parser.parse_args())
     # config = read_config(args['config'])
-    config = read_config('config.yml')
+    config = read_config('config_d4pg.yml')
     BECEC.set_config(config)
     engine = load_engine(config)
     engine.train()

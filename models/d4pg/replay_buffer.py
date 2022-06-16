@@ -219,5 +219,5 @@ def create_replay_buffer(config):
     size = config['replay_mem_size']
     if config['replay_memory_prioritized']:
         alpha = config['priority_alpha']
-        return PrioritizedReplayBuffer(size=size, alpha=alpha)
+        return PrioritizedReplayBuffer(size=size, alpha=alpha, save_dir=None)
     return ReplayBuffer(size)
