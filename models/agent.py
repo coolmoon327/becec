@@ -56,6 +56,11 @@ class Agent(object):
         rewards = []
         while training_on.value:
             episode_reward = 0.
+            if self.agent_type == "exploitation" and self.config["env"] == "BECEC":
+                episode_null_num = 0
+                episode_thrown_num = 0
+                episode_bs_selected_times = [0 for _ in range(self.config["M"])]
+
             num_steps = 0
             self.local_episode += 1
             self.global_episode.value += 1
@@ -77,25 +82,20 @@ class Agent(object):
                     action = action.detach().cpu().numpy().flatten()
                 next_state, reward, done = self.env_wrapper.step(action)
 
-                if self.agent_type == "exploitation" and num_steps % 50 == 0:
-                    # if self.config['env'] == 'BECEC':
-                    #     M = self.config['M']
-                    #     n_tasks = self.config['n_tasks']
-                    #     action_mode = self.config['action_mode']
-                    #     if action_mode == 0:
-                    #         print(f"Exploitation:\n action={(action+1)*M/2}\n reward={reward}")
-                    #     else:
-                    #         import numpy as np
-                    #         a = np.zeros(n_tasks)
-                    #         for i in range(n_tasks):
-                    #             first_index = i*(M+1)
-                    #             last_index = (i+1)*(M+1) - 1
-                    #             one_hot = action[first_index:last_index+1]
-                    #             a[i] = np.argmax(one_hot)
-                    #         print(f"Exploitation:\n action={a}\n reward={reward}")
-                    # else:
-                    #     print(f"Exploitation:\n action={action}\n reward={reward}")
-                    print(f"Exploitation:\n action={action}\n reward={reward}")
+                if self.agent_type == "exploitation" and self.config["env"] == "BECEC":
+                    details = self.env_wrapper.get_details()
+                    episode_thrown_num += details[1]
+                    episode_null_num += details[2]
+                    target_bs = details[0]
+                    for bs in target_bs:
+                        if bs == -1:
+                            continue
+                        episode_bs_selected_times[bs] += 1
+                    
+                    if num_steps % 10 == 1:
+                        print(f"---\nStep {update_step.value} Episode {self.local_episode} Exploitation:\n action={action}")
+                        print(f"Target BS: {details[0]} \n Thrown tasks: {details[1]} | Null BSs: {details[2]} | Reward: {int(details[3]*100)/100}")
+                        print("---")
 
                 num_steps += 1
                 if num_steps == self.max_steps:
@@ -140,16 +140,19 @@ class Agent(object):
                             except:
                                pass
                     break
-                
-                # # TODO 此处调试用，如果在内部更新的效果更好，则后续进行修改
-                # # 如果每进行完一个 episode 才获取一次，队列可能一直都取不完
-                # if self.agent_type == "exploration" and num_steps % 50 == 0:
-                #     self.update_actor_learner(learner_w_queue, training_on)
 
             # Log metrics
             step = update_step.value
             self.logger.scalar_summary(f"agent_{self.agent_type}/episode_reward", episode_reward, step)
             self.logger.scalar_summary(f"agent_{self.agent_type}/episode_timing", time.time() - ep_start_time, step)
+            if self.agent_type == "exploitation" and self.config["env"] == "BECEC":
+                self.logger.scalar_summary(f"agent_{self.agent_type}/episode_thrown_num", episode_thrown_num, step)
+                self.logger.scalar_summary(f"agent_{self.agent_type}/episode_null_num", episode_null_num, step)
+                dict = {}
+                for bs in range(self.config["M"]):
+                    dict[f"BS{bs}"] = episode_bs_selected_times[bs]
+                self.logger.scalars_summary(f"agent_{self.agent_type}/episode_bs_selection", dict, step)
+            
 
             if self.config["save_reward_threshold"] >= 0:
                 # Saving agent

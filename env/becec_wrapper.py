@@ -7,6 +7,8 @@ class BECEC(EnvWrapper):
         self.config = config
         self.env_name = config['env']
         self.env.load_config(config)
+
+        # 用来输出上下限，方便调整 D4PG 的上下限
         self.config['log_min'] = 1e5
         self.config['log_max'] = -1e5
 
@@ -22,6 +24,10 @@ class BECEC(EnvWrapper):
             print(f"Min reward: {self.config['log_min']}")
         return reward
     
+    def get_details(self):
+        details = self.env.get_details()
+        return details
+
     @classmethod
     def set_config(cls, config):
         state_mode = config['state_mode']

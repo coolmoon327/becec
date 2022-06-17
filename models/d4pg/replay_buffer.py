@@ -113,8 +113,19 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         self._it_min = MinSegmentTree(self.it_capacity)
         self._max_priority = 1.0
 
+        print(f"it_capacity={self.it_capacity}, size={size}")
+
     def add(self, *args, **kwargs):
         idx = self._next_idx
+
+        if idx >= self._maxsize:
+            # TODO 检查这里限制经验池大小的方法是否存在问题
+            # # it_capacity 与 _maxsize 的关系？
+            # self.remove(10*(idx+1-self._maxsize))  # remove 中会更新 _next_idx
+            # idx = self._next_idx
+            idx = 0
+            self._next_idx = 1
+
         assert idx < self.it_capacity, "Number of samples in replay memory exceeds capacity of segment trees. Please increase capacity of segment trees or increase the frequency at which samples are removed from the replay memory"
 
         super().add(*args, **kwargs)

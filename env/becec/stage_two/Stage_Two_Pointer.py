@@ -34,6 +34,8 @@ class Stage_Two_Pointer:
         self.cost = 0
         self.u = 0
 
+        self.log_thrown_tasks_num = 0
+
     def execute(self):
         """
         执行预测
@@ -43,6 +45,8 @@ class Stage_Two_Pointer:
         '''
             cfg 放在外面,只做一次初始化就可以了
         '''
+        self.log_thrown_tasks_num = 0
+
         penalty = self._env.config['penalty']
         penalty_mode = self._env.config['penalty_mode']
 
@@ -69,10 +73,10 @@ class Stage_Two_Pointer:
                     # print(f"target bs {i} has no more capacity!")
                     if penalty_mode == 0:
                         self.u += penalty * num
-
                         self._env.clear_tasks_at_BS(i) 
-                        break
 
+                        self.log_thrown_tasks_num += num
+                        break
                     elif penalty_mode == 1:
                         task_size = 0.
                         for t in range(num):
@@ -85,12 +89,13 @@ class Stage_Two_Pointer:
                             bs_remain += c
                         throw_num = np.ceil((task_size-bs_remain) / (task_size/num))
                         self.u += penalty * throw_num
-                        
                         self._env.clear_tasks_at_BS(i) 
-                        break
 
+                        self.log_thrown_tasks_num += throw_num
+                        break
                     elif penalty_mode == 2:
                         self.u += penalty
+                        self.log_thrown_tasks_num += 1
 
                 else:
                     c = u + score
@@ -113,7 +118,8 @@ class Stage_Two_Pointer:
                         self._env.allocate_task_at_BS(task=task, BS_ID=i, alloc_list=alloc_list)
                     
                     break
-
+                
+                # 只有在 penalty_mode 2 中，且无法完成调度的情况下，才会进行循环，直到剩下能够分配的任务序列
                 tasks.pop(-1)
                 num = len(tasks)
             else:
@@ -127,3 +133,6 @@ class Stage_Two_Pointer:
         u = self.u
         self.cost = self.u = 0.
         return cost, u
+
+    def get_thrown_tasks_num(self):
+        return self.log_thrown_tasks_num

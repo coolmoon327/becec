@@ -13,6 +13,9 @@ class Observation(object):
     def __init__(self, config={}):
         if len(config):
             self.load_config(config)
+
+        # 用于输出本次 action 执行的细节
+        self.log_details = []
     
     def load_config(self, config):
         self.config = config
@@ -123,7 +126,7 @@ class Observation(object):
         n_tasks = self.config['n_tasks']
         action_mode = self.config['action_mode']
         env = self._env
-        
+
         num_null = 0
 
         if type(action_raw) is np.ndarray:
@@ -168,7 +171,10 @@ class Observation(object):
             else:
                 log_BS.append(target_BS)
                 env.schedule_task_to_BS(task=task, BS_ID=target_BS)
+
         # print(f"Slot {self._env.timer} --- Target BS in stage one: {log_BS}")
+        self.log_details.append(log_BS)
+
         return num_null
 
     def seed(self, seed):
@@ -195,12 +201,18 @@ class Observation(object):
         return self.get_state(self._env)
     
     def step(self, action):
+        self.log_details.clear()
+
         # 1. 执行第一阶段
         num_null = self.execute(action)
     
         # 2. 执行第二阶段（将第二阶段的算法当作一个黑盒模块）
         c, u = self.alg_2.execute()
         reward = u - c + self._env.config['penalty']/3 * num_null
+
+        self.log_details.append(self.alg_2.get_thrown_tasks_num())
+        self.log_details.append(num_null)
+        self.log_details.append(reward)
         # print(f"reward: {reward}")
 
         # 3. 环境更新到下一个 frame
@@ -222,3 +234,7 @@ class Observation(object):
         done = (self._env.timer > self.config['T']-1)
         info = {}
         return s_, reward, done, info
+
+    def get_details(self):
+        # log_details = [[list of target BSs], number of thrown tasks, number of null target BSs, reward]
+        return self.log_details

@@ -28,6 +28,16 @@ class Logger(object):
         """
         self.writer.add_scalar(tag, value, step)
 
+    def scalars_summary(self, tag, scalar_dict, step):
+        """
+        Log scalars value to the disk.
+        Args:
+            tag (str): name of the value
+            scalar_dict (dict): {'sub_tag':value}
+            step (int): update step
+        """
+        self.writer.add_scalars(tag, scalar_dict, step)
+
     def close(self):
         self.writer.close()
 
