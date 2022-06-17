@@ -1,7 +1,7 @@
 # Environment parameters
 
 env: BECEC
-random_seed: 20220
+random_seed: 20
 num_agents: 9
 
 
@@ -9,7 +9,7 @@ num_agents: 9
 
 model: d4pg
 batch_size: 512
-num_steps_train: 300_000 # number of episodes from all agents
+num_steps_train: 200_000 # number of episodes from all agents
 max_ep_length: 1000 # maximum number of steps per episode
 replay_mem_size: 1_000_000 # maximum capacity of replay memory
 priority_alpha: 0.6 # controls the randomness vs prioritisation of the prioritised sampling (0.0 = Uniform sampling, 1.0 = Greedy prioritisation)
@@ -18,7 +18,7 @@ priority_beta_end: 1.0 # beta will be linearly annelaed from its start value to 
 discount_rate: 0.99 # Discount rate (gamma) for future rewards
 n_step_returns: 1 # number of future steps to collect experiences for N-step returns
 update_agent_ep: 1 # agent gets latest parameters from learner every update_agent_ep episodes
-replay_queue_size: 1_024 # queue with replays from all the agents
+replay_queue_size: 1024 # queue with replays from all the agents
 batch_queue_size: 64 # queue with batches given to learner
 replay_memory_prioritized: 1
 num_episode_save: 100
@@ -31,7 +31,7 @@ decay_period: 100
 
 # Network parameters
 
-critic_learning_rate: 0.001
+critic_learning_rate: 0.0005
 actor_learning_rate: 0.0001
 dense_size: 512 # size of the 2 hidden layers in networks
 num_atoms: 51 # number of atoms in output layer of distributed critic

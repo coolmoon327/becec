@@ -30,7 +30,10 @@ class ReplayBuffer(object):
     def add(self, obs_t, action, reward, obs_tp1, done, gamma):
         data = (obs_t, action, reward, obs_tp1, done, gamma)
 
-        self._storage.append(data)
+        if self._next_idx == len(self):
+            self._storage.append(data)
+        else:
+            self._storage[self._next_idx] = data
 
         self._next_idx += 1
 
@@ -124,7 +127,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
             # self.remove(10*(idx+1-self._maxsize))  # remove 中会更新 _next_idx
             # idx = self._next_idx
             idx = 0
-            self._next_idx = 1
+            self._next_idx = 0
 
         assert idx < self.it_capacity, "Number of samples in replay memory exceeds capacity of segment trees. Please increase capacity of segment trees or increase the frequency at which samples are removed from the replay memory"
 
