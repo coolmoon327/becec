@@ -9,7 +9,7 @@ num_agents: 9
 
 model: d4pg
 batch_size: 512
-num_steps_train: 200_000 # number of episodes from all agents
+num_steps_train: 1_000_000 # number of episodes from all agents
 max_ep_length: 1000 # maximum number of steps per episode
 replay_mem_size: 1_000_000 # maximum capacity of replay memory
 priority_alpha: 0.6 # controls the randomness vs prioritisation of the prioritised sampling (0.0 = Uniform sampling, 1.0 = Greedy prioritisation)
@@ -35,7 +35,7 @@ critic_learning_rate: 0.0005
 actor_learning_rate: 0.0001
 dense_size: 512 # size of the 2 hidden layers in networks
 num_atoms: 51 # number of atoms in output layer of distributed critic
-v_min: -10000 # lower bound of critic value output distribution
+v_min: -5000 # lower bound of critic value output distribution
 v_max: 5000 # upper bound of critic value output distribution
 tau: 0.005 # parameter for soft target network updates
 

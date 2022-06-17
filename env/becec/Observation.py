@@ -207,12 +207,14 @@ class Observation(object):
         num_null = self.execute(action)
     
         # 2. 执行第二阶段（将第二阶段的算法当作一个黑盒模块）
-        c, u = self.alg_2.execute()
-        reward = u - c + self._env.config['penalty']/3 * num_null
+        c, u, penalty = self.alg_2.execute()
+        penalty += self._env.config['penalty']/3 * num_null
+        reward = u - c + penalty
 
         self.log_details.append(self.alg_2.get_thrown_tasks_num())
         self.log_details.append(num_null)
         self.log_details.append(reward)
+        self.log_details.append(u-c)
         # print(f"reward: {reward}")
 
         # 3. 环境更新到下一个 frame
@@ -236,5 +238,5 @@ class Observation(object):
         return s_, reward, done, info
 
     def get_details(self):
-        # log_details = [[list of target BSs], number of thrown tasks, number of null target BSs, reward]
+        # log_details = [[list of target BSs], number of thrown tasks, number of null target BSs, reward, reward without penalty]
         return self.log_details

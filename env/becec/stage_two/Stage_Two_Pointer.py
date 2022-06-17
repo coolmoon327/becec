@@ -31,8 +31,9 @@ class Stage_Two_Pointer:
         self.cfg = argparser(env)
         self.env = Env_tsp(self.cfg)
         self.test = Test(self.cfg, self.env, self._env)
-        self.cost = 0
-        self.u = 0
+        self.cost = 0.
+        self.u = 0.
+        self.penalty = 0.
 
         self.log_thrown_tasks_num = 0
 
@@ -72,7 +73,7 @@ class Stage_Two_Pointer:
                 if score == 5000.:
                     # print(f"target bs {i} has no more capacity!")
                     if penalty_mode == 0:
-                        self.u += penalty * num
+                        self.penalty += penalty * num
                         self._env.clear_tasks_at_BS(i) 
 
                         self.log_thrown_tasks_num += num
@@ -88,13 +89,13 @@ class Stage_Two_Pointer:
                             c = self._env.C(i, t)
                             bs_remain += c
                         throw_num = np.ceil((task_size-bs_remain) / (task_size/num))
-                        self.u += penalty * throw_num
+                        self.penalty += penalty * throw_num
                         self._env.clear_tasks_at_BS(i) 
 
                         self.log_thrown_tasks_num += throw_num
                         break
                     elif penalty_mode == 2:
-                        self.u += penalty
+                        self.penalty += penalty
                         self.log_thrown_tasks_num += 1
 
                 else:
@@ -131,8 +132,9 @@ class Stage_Two_Pointer:
         
         cost = self.cost
         u = self.u
-        self.cost = self.u = 0.
-        return cost, u
+        penalty = self.penalty
+        self.cost = self.u = self.penalty = 0.
+        return cost, u, penalty
 
     def get_thrown_tasks_num(self):
         return self.log_thrown_tasks_num

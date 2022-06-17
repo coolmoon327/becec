@@ -60,6 +60,7 @@ class Agent(object):
                 episode_null_num = 0
                 episode_thrown_num = 0
                 episode_bs_selected_times = [0 for _ in range(self.config["M"])]
+                episode_reward_pure = 0.    # without penalty
 
             num_steps = 0
             self.local_episode += 1
@@ -86,6 +87,7 @@ class Agent(object):
                     details = self.env_wrapper.get_details()
                     episode_thrown_num += details[1]
                     episode_null_num += details[2]
+                    episode_reward_pure += details[4]
                     target_bs = details[0]
                     for bs in target_bs:
                         if bs == -1:
@@ -94,7 +96,7 @@ class Agent(object):
                     
                     if num_steps % 10 == 1:
                         print(f"---\nStep {update_step.value} Episode {self.local_episode} Exploitation:\n action={action}")
-                        print(f"Target BS: {details[0]} \n Thrown tasks: {details[1]} | Null BSs: {details[2]} | Reward: {int(details[3]*100)/100}")
+                        print(f"Target BS: {details[0]} \n Thrown tasks: {details[1]} | Null BSs: {details[2]} | Reward: {int(details[3]*100)/100} | Pure reward: {int(details[4]*100)/100}")
                         print("---")
 
                 num_steps += 1
@@ -148,6 +150,7 @@ class Agent(object):
             if self.agent_type == "exploitation" and self.config["env"] == "BECEC":
                 self.logger.scalar_summary(f"agent_{self.agent_type}/episode_thrown_num", episode_thrown_num, step)
                 self.logger.scalar_summary(f"agent_{self.agent_type}/episode_null_num", episode_null_num, step)
+                self.logger.scalar_summary(f"agent_{self.agent_type}/episode_reward_pure", episode_reward_pure, step)
                 dict = {}
                 for bs in range(self.config["M"]):
                     dict[f"BS{bs}"] = episode_bs_selected_times[bs]
