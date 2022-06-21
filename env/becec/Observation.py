@@ -1,7 +1,5 @@
 import numpy
 import numpy as np
-import time
-import torch
 import copy
 from gym import spaces
 
@@ -32,14 +30,14 @@ class Observation(object):
         
         self.n_observations = config['state_dim']
         self.n_actions = config['action_dim']
-        
-        # TODO 检查 action_space
         self.action_space = spaces.Box(low=config['action_low'], high=config['action_high'], shape=(self.n_actions,))
+
+        self.rand_map = [j for j in range(config["M"])]   # index: really BS ID, value: random BS ID
     
     def _sort_batch_tasks(self, batch_begin_index, next_batch_begin_index):
         """
         对当前批的任务按照某种规则排序，以提升训练效果
-        该方法会直接作用于 env 的 task_set，需要注意是否有其他方法对 task_set 的有序性有要求
+        该方法会直接作用于 env 的 task_set, 需要注意是否有其他方法对 task_set 的有序性有要求
         :return:
         """
         env = self._env
@@ -61,7 +59,8 @@ class Observation(object):
 
         index = 0
         # 基站信息
-        for i in range(M):
+        for index in range(M):
+            i = self.rand_map[index]    # 枚举 BS index，映射为虚拟的 BS id
             # 该方案需要配合修改 parameter 的 n_observations 属性
             
             if state_mode == 0:
@@ -157,18 +156,20 @@ class Observation(object):
         log_BS = []
         for n in range(batch_begin_index, next_batch_begin_index):
             task = env.task_set[n]
-            target_BS = int(round(action[index]))
+            act = int(round(action[index]))
             index += 1
-            if not 0 <= target_BS <= M:
-                # print(f"BS number {target_BS} is out of range!")
-                # 修剪范围
-                target_BS = min(M, target_BS)
-                target_BS = max(0, target_BS)
-            if target_BS == M:
+            if not 0 <= act <= M:
+                print(f"BS number {act} is out of range!")
+            # 修剪范围
+            act = min(M, act)
+            act = max(0, act)
+            if act == M:
                 # null bs
                 log_BS.append(-1)
                 num_null += 1
             else:
+                # TODO 检查 rand 的操作是否成功还原
+                target_BS = self.rand_map[act]
                 log_BS.append(target_BS)
                 env.schedule_task_to_BS(task=task, BS_ID=target_BS)
 
@@ -203,12 +204,16 @@ class Observation(object):
     def step(self, action):
         self.log_details.clear()
 
+        if self.config["shuffle_bs"]:
+            # 打乱 BS 顺序
+            np.random.shuffle(self.rand_map)
+
         # 1. 执行第一阶段
         num_null = self.execute(action)
     
         # 2. 执行第二阶段（将第二阶段的算法当作一个黑盒模块）
         c, u, penalty = self.alg_2.execute()
-        penalty += self._env.config['penalty']/3 * num_null
+        penalty += self._env.config['penalty']/10 * num_null
         reward = u - c + penalty
 
         self.log_details.append(self.alg_2.get_thrown_tasks_num())

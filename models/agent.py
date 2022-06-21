@@ -25,7 +25,7 @@ class Agent(object):
 
         # Create environment
         self.env_wrapper = create_env_wrapper(config)
-        self.ou_noise = OUNoise(dim=config["action_dim"], low=config["action_low"], high=config["action_high"], decay_period=config['decay_period'])
+        self.ou_noise = OUNoise(dim=config["action_dim"], low=config["action_low"], high=config["action_high"], decay_period=config['decay_period'], min_sigma=config['min_sigma'], max_sigma=config['max_sigma'])
         self.ou_noise.reset()
 
         self.actor = policy
@@ -94,7 +94,7 @@ class Agent(object):
                             continue
                         episode_bs_selected_times[bs] += 1
                     
-                    if num_steps % 10 == 1:
+                    if num_steps % 500 == 1:
                         print(f"---\nStep {update_step.value} Episode {self.local_episode} Exploitation:\n action={action}")
                         print(f"Target BS: {details[0]} \n Thrown tasks: {details[1]} | Null BSs: {details[2]} | Reward: {int(details[3]*100)/100} | Pure reward: {int(details[4]*100)/100}")
                         print("---")

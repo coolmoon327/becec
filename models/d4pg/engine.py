@@ -65,7 +65,7 @@ def sampler_worker(config, replay_queue, batch_queue, replay_priorities_queue, t
             sleep(0.1)
             continue
 
-        
+        beta = min(config["priority_beta_end"], beta + global_episode.value/1e5)
 
         # Log data structures sizes
         step = update_step.value
