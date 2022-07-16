@@ -59,7 +59,8 @@ class Agent(object):
             if self.agent_type == "exploitation" and self.config["env"] == "BECEC":
                 episode_null_num = 0
                 episode_thrown_num = 0
-                episode_bs_selected_times = [0 for _ in range(self.config["M"])]
+                episode_outputs_times = [0 for _ in range(self.config["M"]+1)]        # 一个 episode 中, actor 输出各个值的次数
+                episode_bs_selected_times = [0 for _ in range(self.config["M"])]    # 一个 episode 中, 各个 bs 被选择的次数
                 episode_reward_pure = 0.    # without penalty
 
             num_steps = 0
@@ -85,10 +86,13 @@ class Agent(object):
 
                 if self.agent_type == "exploitation" and self.config["env"] == "BECEC":
                     details = self.env_wrapper.get_details()
-                    episode_thrown_num += details[1]
-                    episode_null_num += details[2]
-                    episode_reward_pure += details[4]
-                    target_bs = details[0]
+                    episode_thrown_num += details[2]
+                    episode_null_num += details[3]
+                    episode_reward_pure += details[5]
+                    actor_outputs = details[0]
+                    for output in actor_outputs:
+                        episode_outputs_times[output] += 1
+                    target_bs = details[1]
                     for bs in target_bs:
                         if bs == -1:
                             continue
@@ -96,7 +100,7 @@ class Agent(object):
                     
                     if num_steps % 500 == 1:
                         print(f"---\nStep {update_step.value} Episode {self.local_episode} Exploitation:\n action={action}")
-                        print(f"Target BS: {details[0]} \n Thrown tasks: {details[1]} | Null BSs: {details[2]} | Reward: {int(details[3]*100)/100} | Pure reward: {int(details[4]*100)/100}")
+                        print(f"Actor outputs: {details[0]} \n Target BS: {details[1]} \n Thrown tasks: {details[2]} | Null BSs: {details[3]} | Reward: {int(details[4]*100)/100} | Pure reward: {int(details[5]*100)/100}")
                         print("---")
 
                 num_steps += 1
@@ -151,10 +155,16 @@ class Agent(object):
                 self.logger.scalar_summary(f"agent_{self.agent_type}/episode_thrown_num", episode_thrown_num, step)
                 self.logger.scalar_summary(f"agent_{self.agent_type}/episode_null_num", episode_null_num, step)
                 self.logger.scalar_summary(f"agent_{self.agent_type}/episode_reward_pure", episode_reward_pure, step)
-                dict = {}
+                
+                dict1 = {}
+                for output in range(self.config["M"]+1):
+                    dict1[f"output{output}"] = episode_outputs_times[output]
+                self.logger.scalars_summary(f"agent_{self.agent_type}/episode_actor_outputs", dict1, step)
+                
+                dict2 = {}
                 for bs in range(self.config["M"]):
-                    dict[f"BS{bs}"] = episode_bs_selected_times[bs]
-                self.logger.scalars_summary(f"agent_{self.agent_type}/episode_bs_selection", dict, step)
+                    dict2[f"BS{bs}"] = episode_bs_selected_times[bs]
+                self.logger.scalars_summary(f"agent_{self.agent_type}/episode_bs_selection", dict2, step)
             
 
             if self.config["save_reward_threshold"] >= 0:

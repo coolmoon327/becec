@@ -153,6 +153,7 @@ class Observation(object):
         next_batch_begin_index = min((env.task_batch_num+1) * n_tasks, len(env.task_set))  # 下一批首任务的下标
         # 这种调度没有管补 0 的那部分决策（action 后面可能还有一部分，但是 n 已经取到上限了）
         index = 0
+        log_out = []
         log_BS = []
         for n in range(batch_begin_index, next_batch_begin_index):
             task = env.task_set[n]
@@ -163,6 +164,7 @@ class Observation(object):
             # 修剪范围
             act = min(M, act)
             act = max(0, act)
+            log_out.append(act)
             if act == M:
                 # null bs
                 log_BS.append(-1)
@@ -174,6 +176,7 @@ class Observation(object):
                 env.schedule_task_to_BS(task=task, BS_ID=target_BS)
 
         # print(f"Slot {self._env.timer} --- Target BS in stage one: {log_BS}")
+        self.log_details.append(log_out)
         self.log_details.append(log_BS)
 
         return num_null
@@ -243,5 +246,5 @@ class Observation(object):
         return s_, reward, done, info
 
     def get_details(self):
-        # log_details = [[list of target BSs], number of thrown tasks, number of null target BSs, reward, reward without penalty]
+        # log_details = [[list of quantized actor outputs], [list of target BSs], number of thrown tasks, number of null target BSs, reward, reward without penalty]
         return self.log_details
