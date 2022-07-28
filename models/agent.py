@@ -54,7 +54,15 @@ class Agent(object):
 
         best_reward = -float("inf")
         rewards = []
-        while training_on.value:
+
+        # Only used in testing mode, meaning the total number of episodes
+        counts = 0 
+        counts_max = 100
+
+        while training_on.value and counts < counts_max:
+            if training_on.value == 2:
+                counts+=1
+
             episode_reward = 0.
             if self.agent_type == "exploitation" and self.config["env"] == "BECEC":
                 episode_null_num = 0
@@ -148,7 +156,11 @@ class Agent(object):
                     break
 
             # Log metrics
-            step = update_step.value
+            if training_on.value == 2:
+                # Testing mode, use episode count as step
+                step = counts
+            else:
+                step = update_step.value
             self.logger.scalar_summary(f"agent_{self.agent_type}/episode_reward", episode_reward, step)
             self.logger.scalar_summary(f"agent_{self.agent_type}/episode_timing", time.time() - ep_start_time, step)
             if self.agent_type == "exploitation" and self.config["env"] == "BECEC":
@@ -174,7 +186,8 @@ class Agent(object):
                 if self.agent_type == "exploitation" and (time_to_save or reward_outperformed):
                     if episode_reward > best_reward:
                         best_reward = episode_reward
-                    self.save(f"local_episode_{self.local_episode}_reward_{best_reward:4f}")
+                    # self.save(f"local_episode_{self.local_episode}_reward_{best_reward:4f}")
+                    self.save(f"M_{self.config['M']}_T_{self.config['T']}_Dt_{self.config['delta_t']}")
 
             rewards.append(episode_reward)
             if self.agent_type == "exploration" and self.local_episode % self.config['update_agent_ep'] == 0:
@@ -184,7 +197,8 @@ class Agent(object):
         print(f"Agent {self.n_agent} done.")
 
     def save(self, checkpoint_name):
-        process_dir = f"{self.log_dir}/agent_{self.n_agent}"
+        # process_dir = f"{self.log_dir}/agent_{self.n_agent}"
+        process_dir = "./results/Actor_Network_Params"
         if not os.path.exists(process_dir):
             os.makedirs(process_dir)
         model_fn = f"{process_dir}/{checkpoint_name}.pt"

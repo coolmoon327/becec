@@ -1,6 +1,7 @@
 import copy
 from datetime import datetime
 from multiprocessing import set_start_method
+import torch
 import torch.multiprocessing as torch_mp
 import multiprocessing as mp
 import queue
@@ -158,6 +159,33 @@ class Engine(object):
             p.start()
         for p in processes:
             p.join()
+
+        print("End.")
+    
+    def test(self):
+        config = self.config
+
+        # Create directory for experiment
+        experiment_dir = f"{config['results_path']}/{config['env']}-{config['model']}-{datetime.now():%Y-%m-%d_%H:%M:%S}"
+        if not os.path.exists(experiment_dir):
+            os.makedirs(experiment_dir)
+
+        # Data structures
+        replay_queue = mp.Queue(maxsize=config['replay_queue_size'])
+        training_on = mp.Value('i', 2)  # Make the changes at agent.py: 0/1 used for training mode; 2 used for testing mode
+        update_step = mp.Value('i', 0)
+        global_episode = mp.Value('i', 0)
+
+        # Learner (neural net training process)
+        target_policy_net = PolicyNetwork(config['state_dim'], config['action_dim'],
+                                          config['dense_size'], device=config['device'])
+        param_file = f"./results/Actor_Network_Params/M_{self.config['M']}_T_{self.config['T']}_Dt_{self.config['delta_t']}.pt"
+        target_policy_net = torch.load(param_file)
+        target_policy_net.eval()
+
+        # Single agent for exploitation
+        agent_worker(config, target_policy_net, None, global_episode, 0, "exploitation", experiment_dir,
+                                   training_on, replay_queue, update_step)
 
         print("End.")
 
