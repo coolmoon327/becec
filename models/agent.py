@@ -179,7 +179,7 @@ class Agent(object):
                 self.logger.scalars_summary(f"agent_{self.agent_type}/episode_bs_selection", dict2, step)
             
 
-            if self.config["save_reward_threshold"] >= 0:
+            if self.config["save_reward_threshold"] >= 0 and training_on.value == 1:
                 # Saving agent
                 reward_outperformed = episode_reward - best_reward > self.config["save_reward_threshold"]
                 time_to_save = self.local_episode % self.num_episode_save == 0
@@ -187,7 +187,7 @@ class Agent(object):
                     if episode_reward > best_reward:
                         best_reward = episode_reward
                     # self.save(f"local_episode_{self.local_episode}_reward_{best_reward:4f}")
-                    self.save(f"M_{self.config['M']}_T_{self.config['T']}_Dt_{self.config['delta_t']}")
+                    self.save(f"M_{self.config['M']}_T_{self.config['T']}_Dt_{self.config['delta_t']}_Gamma_{self.config['discount_rate']}")
 
             rewards.append(episode_reward)
             if self.agent_type == "exploration" and self.local_episode % self.config['update_agent_ep'] == 0:

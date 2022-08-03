@@ -32,8 +32,8 @@ class Observation(object):
         self.n_actions = config['action_dim']
         self.action_space = spaces.Box(low=config['action_low'], high=config['action_high'], shape=(self.n_actions,))
 
-        self.rand_map = [j for j in range(config["M"])]   # index: really BS ID, value: random BS ID
-    
+        self.rand_map = [j for j in range(config["M"]+1)]   # index: really BS+Null ID, value: random BS+Null ID
+
     def _sort_batch_tasks(self, batch_begin_index, next_batch_begin_index):
         """
         对当前批的任务按照某种规则排序，以提升训练效果
@@ -57,10 +57,10 @@ class Observation(object):
         
         state = [0. for _ in range(self.n_observations)]
 
-        index = 0
-        # 基站信息
-        for index in range(M):
+        for index in range(M+1):
             i = self.rand_map[index]    # 枚举 BS index，映射为虚拟的 BS id
+            if i == M: continue    # 抽到 Null 基站, 跳过
+
             # 该方案需要配合修改 parameter 的 n_observations 属性
             
             if state_mode == 0:
@@ -209,15 +209,24 @@ class Observation(object):
 
         if self.config["shuffle_bs"]:
             # 打乱 BS 顺序
-            np.random.shuffle(self.rand_map)
+            if self.config['shuffle_bs'] == 1:
+                M = self.config["M"]
+                self.rand_map = [j for j in range(M)]   # 先对基站进行打乱
+                np.random.shuffle(self.rand_map)
+                self.rand_map.append(M)                 # 再加上 Null
+                
+            elif self.config['shuffle_bs'] == 2:
+                np.random.shuffle(self.rand_map)
 
         # 1. 执行第一阶段
         num_null = self.execute(action)
     
         # 2. 执行第二阶段（将第二阶段的算法当作一个黑盒模块）
         c, u, penalty = self.alg_2.execute()
-        penalty += self._env.config['penalty']/10 * num_null
+        if self.config["is_null_penalty"]:
+            penalty += self._env.config['penalty']/10 * num_null    # 惩罚 Null 基站
         reward = u - c + penalty
+
 
         self.log_details.append(self.alg_2.get_thrown_tasks_num())
         self.log_details.append(num_null)

@@ -1,4 +1,5 @@
 from .env_wrapper import EnvWrapper
+import numpy as np
 
 
 class BECEC(EnvWrapper):
@@ -12,6 +13,10 @@ class BECEC(EnvWrapper):
         self.config['log_min'] = 1e5
         self.config['log_max'] = -1e5
 
+        # self.rewards = []
+        self.mean_reward = 0.
+        self.counts = 0
+
     def normalise_state(self, state):
         return state
 
@@ -22,7 +27,26 @@ class BECEC(EnvWrapper):
         if self.config['log_min'] > reward:
             self.config['log_min'] = reward
             print(f"Min reward: {self.config['log_min']}")
-        return reward
+
+        # return reward
+
+        # self.rewards.append(reward)
+        # Mean = np.mean(self.rewards)
+        # Std = np.std(self.rewards)
+        # if Std==0:
+        #     Std = 1.
+        # norm_reward = (reward - Mean) / Std
+
+        norm_reward = reward - self.mean_reward
+        self.counts += 1
+        if self.counts == 1:
+            self.mean_reward = reward
+        else:
+            Gamma = 1./self.counts
+            Gamma = max(Gamma, 1e-3)
+            self.mean_reward = (1-Gamma)*self.mean_reward + Gamma*reward
+        
+        return norm_reward
     
     def get_details(self):
         details = self.env.get_details()

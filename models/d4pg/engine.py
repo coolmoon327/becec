@@ -179,7 +179,7 @@ class Engine(object):
         # Learner (neural net training process)
         target_policy_net = PolicyNetwork(config['state_dim'], config['action_dim'],
                                           config['dense_size'], device=config['device'])
-        param_file = f"./results/Actor_Network_Params/M_{self.config['M']}_T_{self.config['T']}_Dt_{self.config['delta_t']}.pt"
+        param_file = f"./results/Actor_Network_Params/M_{self.config['M']}_T_{self.config['T']}_Dt_{self.config['delta_t']}_Gamma_{self.config['discount_rate']}.pt"
         target_policy_net = torch.load(param_file)
         target_policy_net.eval()
 
