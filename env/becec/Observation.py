@@ -165,13 +165,13 @@ class Observation(object):
             act = min(M, act)
             act = max(0, act)
             log_out.append(act)
-            if act == M:
+
+            target_BS = self.rand_map[act]
+            if target_BS == M:
                 # null bs
                 log_BS.append(-1)
                 num_null += 1
             else:
-                # TODO 检查 rand 的操作是否成功还原
-                target_BS = self.rand_map[act]
                 log_BS.append(target_BS)
                 env.schedule_task_to_BS(task=task, BS_ID=target_BS)
 

@@ -54,7 +54,7 @@ results_path: results
 # 0: not shuffle
 # 1: only shuffle BS choices [0, M-1]
 # 2: shuffle BS and Null choices [0, M]
-shuffle_bs: 1
+shuffle_bs: 2
 
 M: 20 # number of BSs
 delta_t: 30 # number of future slots the algorithm use to allocate at once
@@ -81,6 +81,4 @@ action_mode: 0
 # mode 2: throw the last input task one by one, utinity += penalty*len(thrown_external_tasks)
 penalty_mode: 2
 penalty: -1000.
-is_null_penalty: True # whether the null selection should be penaltied
-
-normalized_return: True # 使用滑动平均去 normalize return
+is_null_penalty: False # whether the null selection should be penaltied
