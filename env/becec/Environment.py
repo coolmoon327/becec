@@ -159,7 +159,6 @@ class Environment:
                     task.arrival_time = frame_end_slot
                 self.task_set += tasks
         elif self.config['frame_mode'] == 1:
-            # TODO check
             if self.clear_flag:
                 self.task_set.clear()
                 self.clear_flag = False

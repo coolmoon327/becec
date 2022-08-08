@@ -3,6 +3,7 @@ from models.engine import load_engine
 from utils.utils import read_config
 from env.becec_wrapper import BECEC
 from env.becec.stage_two.config import Config
+from env.becec.Greedy_Scheduler import Scheduler as Greedy_Scheduler
 
 parser = argparse.ArgumentParser(description='Run training')
 parser.add_argument("--config", type=str, default='./config.yml', help="Path to the config file.")
@@ -15,3 +16,6 @@ if __name__ == "__main__":
     BECEC.set_config(config)
     engine = load_engine(config)
     engine.test()
+
+    # greedy_scheduler = Greedy_Scheduler(config)
+    # greedy_scheduler.run()

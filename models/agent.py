@@ -4,6 +4,7 @@ import time
 from collections import deque
 from copy import deepcopy
 import torch
+import numpy as np
 
 from utils.utils import OUNoise, make_gif, empty_torch_queue
 from utils.logger import Logger
@@ -54,16 +55,19 @@ class Agent(object):
 
         best_reward = -float("inf")
         rewards = []
+        rewards_pure = []
 
         # Only used in testing mode, meaning the total number of episodes
         counts = 0 
-        counts_max = 100
+        counts_max = 10
 
         while training_on.value and counts < counts_max:
             if training_on.value == 2:
                 counts+=1
 
             episode_reward = 0.
+            rewards.clear()
+            rewards_pure.clear()
             if self.agent_type == "exploitation" and self.config["env"] == "BECEC":
                 episode_null_num = 0
                 episode_thrown_num = 0
@@ -97,6 +101,7 @@ class Agent(object):
                     episode_thrown_num += details[2]
                     episode_null_num += details[3]
                     episode_reward_pure += details[5]
+                    rewards_pure.append(details[5])
                     actor_outputs = details[0]
                     for output in actor_outputs:
                         episode_outputs_times[output] += 1
@@ -115,6 +120,7 @@ class Agent(object):
                 if num_steps == self.max_steps:
                     done = False
                 episode_reward += reward
+                rewards.append(reward)
 
                 state = self.env_wrapper.normalise_state(state)
                 reward = self.env_wrapper.normalise_reward(reward)
@@ -161,13 +167,30 @@ class Agent(object):
                 step = counts
             else:
                 step = update_step.value
+            
+
             self.logger.scalar_summary(f"agent_{self.agent_type}/episode_reward", episode_reward, step)
             self.logger.scalar_summary(f"agent_{self.agent_type}/episode_timing", time.time() - ep_start_time, step)
             if self.agent_type == "exploitation" and self.config["env"] == "BECEC":
                 self.logger.scalar_summary(f"agent_{self.agent_type}/episode_thrown_num", episode_thrown_num, step)
                 self.logger.scalar_summary(f"agent_{self.agent_type}/episode_null_num", episode_null_num, step)
                 self.logger.scalar_summary(f"agent_{self.agent_type}/episode_reward_pure", episode_reward_pure, step)
-                
+
+                discounted_cumulative_reward = 0.
+                gamma = self.config['discount_rate']
+                rewards.reverse()   # rewards list is reversed
+                for r in rewards:
+                    discounted_cumulative_reward = discounted_cumulative_reward * gamma + r
+                self.logger.scalar_summary(f"agent_{self.agent_type}/discounted_cumulative_reward", discounted_cumulative_reward, step)
+                self.logger.scalar_summary(f"agent_{self.agent_type}/mean_reward", np.mean(rewards), step)
+
+                discounted_cumulative_reward_pure = 0.
+                rewards_pure.reverse()   # rewards list is reversed
+                for r in rewards_pure:
+                    discounted_cumulative_reward_pure = discounted_cumulative_reward_pure * gamma + r
+                self.logger.scalar_summary(f"agent_{self.agent_type}/discounted_cumulative_reward_pure", discounted_cumulative_reward_pure, step)
+                self.logger.scalar_summary(f"agent_{self.agent_type}/mean_reward_pure", np.mean(rewards_pure), step)
+
                 dict1 = {}
                 for output in range(self.config["M"]+1):
                     dict1[f"output{output}"] = episode_outputs_times[output]
@@ -189,7 +212,6 @@ class Agent(object):
                     # self.save(f"local_episode_{self.local_episode}_reward_{best_reward:4f}")
                     self.save(f"M_{self.config['M']}_T_{self.config['T']}_Dt_{self.config['delta_t']}_Gamma_{self.config['discount_rate']}")
 
-            rewards.append(episode_reward)
             if self.agent_type == "exploration" and self.local_episode % self.config['update_agent_ep'] == 0:
                 self.update_actor_learner(learner_w_queue, training_on)
 

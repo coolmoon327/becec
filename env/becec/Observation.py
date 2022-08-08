@@ -193,7 +193,6 @@ class Observation(object):
         # TODO more close opetation?
     
     def go_next_frame(self):
-        # TODO 验证是否会超出 T，以及有无影响
         while True:
             self._env.next()
             if self._env.is_end_of_frame():
@@ -240,7 +239,7 @@ class Observation(object):
                 self.go_next_frame()
                 s_ = self.get_state(self._env)
             else:
-                self._env.next_task_batch
+                self._env.next_task_batch()
                 env = copy.deepcopy(self._env)
                 s_ = self.get_state(env)    # fake update, just get new s_
                 # may lead to sth wrong, so don't use frame_mode 0 in D4PG
