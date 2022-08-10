@@ -91,11 +91,15 @@ def load_pkl(pkl_path, verbose = True):
 	if not os.path.isfile(pkl_path):
 		raise FileNotFoundError('pkl_path')
 	# print(pkl_path)
-	with open(pkl_path, 'rb') as f:
-		cfg = pickle.load(f)
-		# if verbose:
-		# 	print_cfg(cfg)
-		os.environ['CUDA_VISIBLE_DEVICE'] = cfg.cuda_dv
+	try:
+		with open(pkl_path, 'rb') as f:
+			cfg = pickle.load(f)
+			os.environ['CUDA_VISIBLE_DEVICE'] = cfg.cuda_dv
+			# if verbose:
+			# 	print_cfg(cfg)
+	except:
+		cfg = None
+		
 	return cfg
 
 def pkl_parser():
