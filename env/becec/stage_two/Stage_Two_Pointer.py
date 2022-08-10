@@ -37,6 +37,12 @@ class Stage_Two_Pointer:
 
         self.log_thrown_tasks_num = 0
 
+    def reset(self):
+        self.cost = 0.
+        self.u = 0.
+        self.penalty = 0.
+        self.log_thrown_tasks_num = 0
+
     def execute(self):
         """
         执行预测
@@ -46,7 +52,7 @@ class Stage_Two_Pointer:
         '''
             cfg 放在外面,只做一次初始化就可以了
         '''
-        self.log_thrown_tasks_num = 0
+        self.cost = self.u = self.penalty = 0.
 
         penalty = self._env.config['penalty']
         penalty_mode = self._env.config['penalty_mode']
@@ -107,7 +113,7 @@ class Stage_Two_Pointer:
                     for t in range(num):
                         task = tasks[t]
                         b += task.cpu_requirement()
-                    print(f"{a} < {b}")
+                    # print(f"{a} < {b}")
 
                 else:
                     c = u + score
@@ -139,7 +145,7 @@ class Stage_Two_Pointer:
                         for t in range(delta_t):
                             left_source += self._env.C(i, t)
                         b = left_source
-                        print(f"{a} - {b} = {task.cpu_requirement()}")
+                        # print(f"{a} - {b} = {task.cpu_requirement()}")
                     
                     break
                 
@@ -156,7 +162,6 @@ class Stage_Two_Pointer:
         cost = self.cost
         u = self.u
         penalty = self.penalty
-        self.cost = self.u = self.penalty = 0.
         return cost, u, penalty
 
     def get_thrown_tasks_num(self):

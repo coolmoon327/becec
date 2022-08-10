@@ -200,6 +200,7 @@ class Observation(object):
 
     def reset(self):
         self._env.reset()
+        self.alg_2.reset()
         self.go_next_frame()    # 从第一个 frame 结束时开始
         return self.get_state(self._env)
     
