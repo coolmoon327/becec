@@ -59,7 +59,7 @@ class Agent(object):
 
         # Only used in testing mode, meaning the total number of episodes
         counts = 0 
-        counts_max = 10
+        counts_max = 100
 
         while training_on.value and counts < counts_max:
             if training_on.value == 2:

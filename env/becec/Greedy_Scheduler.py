@@ -20,6 +20,9 @@ class Scheduler():
         log_path = f"results/test/greedy"
         self.logger = Logger(log_path)
 
+        self.target_BS = []
+        self.thrown_num = 0
+
     def seed(self, seed):
         self._env.seed(seed)
     
@@ -35,6 +38,9 @@ class Scheduler():
     def reset(self):
         self._env.reset()
         self.go_next_frame()
+
+        self.target_BS.clear()
+        self.thrown_num = 0
     
     def step(self):
         M = self.config['M']
@@ -68,33 +74,58 @@ class Scheduler():
                 temp_t += 1
             return alloc_list, u-c
 
+        def find_allocation_only_at_t(task: Task, BS: int, t: int):
+            c = env.C(BS, t)
+            r = task.cpu_requirement()
+            alloc_list = [0 for _ in range(delta_t)]
+            if c < r:
+                return alloc_list, -1e6
+            alloc_list[t] = r
+            u = task.utility(env.timer + t)
+            c = env.p(BS, t) * r
+            return alloc_list, u-c
+
         reward = 0.
 
         # 1. 枚举当前 frame 中的任务
         for task in self._env.task_set:
             # 1.1 寻找 task 最佳的 BS 与 Slot
             max_r = -1e6
-            target_BS = 0
+            target_BS = -1
             alloc_list = [0 for _ in range(delta_t)]
             for BS in range(M):
                 for t in range(delta_t):
                     temp_list, r = find_allocation(task, BS, t)
+                    # temp_list, r = find_allocation_only_at_t(task, BS, t)
                     if r > max_r:
                         max_r = r
                         target_BS = BS
                         alloc_list = temp_list
 
-            if max_r <= -1e6:
+            if target_BS == -1:
                 # 无法分配
+                self.thrown_num += 1
                 continue
+
+            left_source = 0
+            for t in range(delta_t):
+                left_source += self._env.C(target_BS, t)
+            a = left_source
 
             # 1.2 分配任务
             # 分配给 BS
             self._env.schedule_task_to_BS(task=task, BS_ID=target_BS)
             # 指定 slot
             self._env.allocate_task_at_BS(task=task, BS_ID=target_BS, alloc_list=alloc_list)
-
             reward += max_r
+
+            left_source = 0
+            for t in range(delta_t):
+                left_source += self._env.C(target_BS, t)
+            b = left_source
+            # print(f"{a} - {b} = {task.cpu_requirement()}")
+
+            self.target_BS.append(target_BS)
 
         # 2. 环境更新到下一个 frame
         # 采用 Observation.py 一样的 frame
@@ -111,7 +142,7 @@ class Scheduler():
 
     def run(self):
         counts = 0 
-        counts_max = 10
+        counts_max = 100
         while counts < counts_max:
             counts+=1
             episode_reward = 0.
@@ -127,4 +158,9 @@ class Scheduler():
 
             self.logger.scalar_summary(f"greedy/episode_reward", episode_reward, counts)
             self.logger.scalar_summary(f"greedy/episode_timing", time.time() - ep_start_time, counts)
-
+            print(f"---\nEpisode {counts}")
+            BS_print = []
+            for BS in range(self.config["M"]):
+                BS_print.append(f"BS{BS}: {self.target_BS.count(BS)}")
+            print(f"{BS_print}\nThrown tasks: {self.thrown_num} | Pure reward: {episode_reward}")
+            print("---")

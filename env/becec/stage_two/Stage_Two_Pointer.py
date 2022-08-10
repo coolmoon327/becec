@@ -97,6 +97,17 @@ class Stage_Two_Pointer:
                     elif penalty_mode == 2:
                         self.penalty += penalty
                         self.log_thrown_tasks_num += 1
+                    
+                    delta_t = self._env.config['delta_t']
+                    left_source = 0
+                    for t in range(delta_t):
+                        left_source += self._env.C(i, t)
+                    a = left_source
+                    b = 0.
+                    for t in range(num):
+                        task = tasks[t]
+                        b += task.cpu_requirement()
+                    print(f"{a} < {b}")
 
                 else:
                     c = u + score
@@ -115,8 +126,20 @@ class Stage_Two_Pointer:
 
                         self.u += task.u_0
 
+                        delta_t = self._env.config['delta_t']
+                        left_source = 0
+                        for t in range(delta_t):
+                            left_source += self._env.C(i, t)
+                        a = left_source
+
                         # allocate 会删除队列中的 task
                         self._env.allocate_task_at_BS(task=task, BS_ID=i, alloc_list=alloc_list)
+
+                        left_source = 0
+                        for t in range(delta_t):
+                            left_source += self._env.C(i, t)
+                        b = left_source
+                        print(f"{a} - {b} = {task.cpu_requirement()}")
                     
                     break
                 

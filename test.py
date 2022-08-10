@@ -17,5 +17,5 @@ if __name__ == "__main__":
     engine = load_engine(config)
     engine.test()
 
-    # greedy_scheduler = Greedy_Scheduler(config)
-    # greedy_scheduler.run()
+    greedy_scheduler = Greedy_Scheduler(config)
+    greedy_scheduler.run()
