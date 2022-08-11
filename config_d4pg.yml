@@ -79,6 +79,11 @@ action_mode: 0
 # mode 0: throw all external_tasks in the busy BS, utinity += penalty*len(external_tasks)
 # mode 1: throw all external_tasks in the busy BS, utinity += penalty*len(exceeded_external_tasks)
 # mode 2: throw the last input task one by one, utinity += penalty*len(thrown_external_tasks)
-penalty_mode: 2
+# mode 3: don't penalty thrown tasks, and don't execute allocation of tasks with u-c<0
+#         whether penaltying null BS depends on subsquent flag 'is_null_penalty'
+penalty_mode: 3
 penalty: -1000.
 is_null_penalty: True # whether the null selection should be penaltied
+
+use_entropy: False  # whether using BS selection entropy in the reward
+entropy_factor: 100.   # reward + entropy_factor * entropy

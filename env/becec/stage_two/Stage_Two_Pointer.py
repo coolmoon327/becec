@@ -52,7 +52,9 @@ class Stage_Two_Pointer:
         '''
             cfg 放在外面,只做一次初始化就可以了
         '''
-        self.cost = self.u = self.penalty = 0.
+        self.cost = 0.
+        self.u = 0.
+        self.penalty = 0.
 
         penalty = self._env.config['penalty']
         penalty_mode = self._env.config['penalty_mode']
@@ -103,6 +105,9 @@ class Stage_Two_Pointer:
                     elif penalty_mode == 2:
                         self.penalty += penalty
                         self.log_thrown_tasks_num += 1
+                    elif penalty_mode == 3:
+                        self.log_thrown_tasks_num += 1
+                        pass    # 不对失误进行惩罚
                     
                     delta_t = self._env.config['delta_t']
                     left_source = 0
@@ -130,6 +135,23 @@ class Stage_Two_Pointer:
                         if sum(alloc_list) != task.cpu_requirement():
                             print("trace 和 task 的大小不匹配！")
 
+                        if penalty_mode == 3:
+                            # 不分配 u-c<0 的任务
+                            env = self._env
+                            end_t = 0
+                            c = 0.
+                            for t in range(self._env.config['delta_t']):
+                                c += env.p(i, t) * alloc_list[t]
+                                if alloc_list[t] > 0:
+                                    end_t = t
+                            u = task.utility(env.timer + end_t)
+                            r = u-c
+                            if r < 0:
+                                env.BS[i].tasks_external.remove(task)
+                                continue # 不执行后面的分配
+                                # # 将 self.cost 与 self.u 中多扣的内容补充到 penalty 中
+                                # self.penalty += abs(r)
+
                         self.u += task.u_0
 
                         delta_t = self._env.config['delta_t']
@@ -146,7 +168,7 @@ class Stage_Two_Pointer:
                             left_source += self._env.C(i, t)
                         b = left_source
                         # print(f"{a} - {b} = {task.cpu_requirement()}")
-                    
+                        
                     break
                 
                 # 只有在 penalty_mode 2 中，且无法完成调度的情况下，才会进行循环，直到剩下能够分配的任务序列

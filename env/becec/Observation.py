@@ -225,8 +225,20 @@ class Observation(object):
         c, u, penalty = self.alg_2.execute()
         if self.config["is_null_penalty"]:
             penalty += self._env.config['penalty']/10 * num_null    # 惩罚 Null 基站
-        reward = u - c + penalty
 
+        if self.config['use_entropy']:
+            # 向 reward 中加入关于 BS 选择概率的熵
+            target_BS = self.log_details[1]
+            entropy = 0.
+            for BS in range(self.config["M"]):
+                num = target_BS.count(BS)
+                p = num / 10.
+                if num > 0:
+                    entropy += -p*np.log(p)
+            # 越平均，熵越大
+            penalty += self.config['entropy_factor'] * entropy
+
+        reward = u - c + penalty
 
         self.log_details.append(self.alg_2.get_thrown_tasks_num())
         self.log_details.append(num_null)
