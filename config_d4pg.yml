@@ -85,5 +85,5 @@ penalty_mode: 3
 penalty: -1000.
 is_null_penalty: True # whether the null selection should be penaltied
 
-use_entropy: False  # whether using BS selection entropy in the reward
-entropy_factor: 100.   # reward + entropy_factor * entropy
+use_entropy: True  # whether using BS selection entropy in the reward
+entropy_factor: 500.   # reward + entropy_factor * entropy
