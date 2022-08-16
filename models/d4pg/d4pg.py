@@ -15,10 +15,11 @@ from .l2_projection import _l2_project
 class LearnerD4PG(object):
     """Policy and value network update routine. """
 
-    def __init__(self, config, policy_net, target_policy_net, learner_w_queue, log_dir=''):
-        hidden_dim = config['dense_size']
-        state_dim = config['state_dim']
-        action_dim = config['action_dim']
+    def __init__(self, config, policy_net, target_policy_net, value_net, target_value_net, learner_w_queue, log_dir=''):
+        self.config = config
+        # hidden_dim = config['dense_size']
+        # state_dim = config['state_dim']
+        # action_dim = config['action_dim']
         value_lr = config['critic_learning_rate']
         policy_lr = config['actor_learning_rate']
         self.v_min = config['v_min']
@@ -42,9 +43,11 @@ class LearnerD4PG(object):
         self.ou_noise = OUNoise(dim=config["action_dim"], low=config["action_low"], high=config["action_high"])
 
         # Value and policy nets
-        self.value_net = ValueNetwork(state_dim, action_dim, hidden_dim, self.v_min, self.v_max, self.num_atoms, device=self.device)
+        # self.value_net = ValueNetwork(state_dim, action_dim, hidden_dim, self.v_min, self.v_max, self.num_atoms, device=self.device)
+        self.value_net = value_net
         self.policy_net = policy_net
-        self.target_value_net = ValueNetwork(state_dim, action_dim, hidden_dim, self.v_min, self.v_max, self.num_atoms, device=self.device)
+        # self.target_value_net = ValueNetwork(state_dim, action_dim, hidden_dim, self.v_min, self.v_max, self.num_atoms, device=self.device)
+        self.target_value_net = target_value_net
         self.target_policy_net = target_policy_net
 
         for target_param, param in zip(self.target_value_net.parameters(), self.value_net.parameters()):
@@ -140,7 +143,14 @@ class LearnerD4PG(object):
         # Send updated learner to the queue
         if update_step.value % 100 == 0:
             try:
-                params = [p.data.cpu().detach().numpy() for p in self.policy_net.parameters()]
+                if self.config['use_wolp']:
+                    # 使用 wolp, 则 agent 也需要 critic 网络
+                    actor_params = [p.data.cpu().detach().numpy() for p in self.policy_net.parameters()]
+                    critic_params = [v.data.cpu().detach().numpy() for v in self.value_net.parameters()]
+                    params = [actor_params, critic_params]
+                else:
+                    # 一般情况下只需要更新 agent actor 网络的参数
+                    params = [p.data.cpu().detach().numpy() for p in self.policy_net.parameters()]
                 self.learner_w_queue.put_nowait(params)
             except:
                 pass

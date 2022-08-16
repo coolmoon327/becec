@@ -38,9 +38,16 @@ critic_learning_rate: 0.0005
 actor_learning_rate: 0.0001
 dense_size: 1024 # size of the 2 hidden layers in networks
 num_atoms: 51 # number of atoms in output layer of distributed critic
-v_min: -5000 # lower bound of critic value output distribution
-v_max: 6000 # upper bound of critic value output distribution
+v_min: -3000 # lower bound of critic value output distribution
+v_max: 3000 # upper bound of critic value output distribution
 tau: 0.005 # parameter for soft target network updates
+
+
+# Wolpertinger Architecture, refer to https://arxiv.org/pdf/1512.07679.pdf
+# Only can be used in d4pg:
+# 1. learner_w_queue use [actor_params, critic_params] instead of just actor_params
+# 2. 
+use_wolp: True
 
 
 # Miscellaneous
@@ -83,7 +90,7 @@ action_mode: 0
 #         whether penaltying null BS depends on subsquent flag 'is_null_penalty'
 penalty_mode: 3
 penalty: -1000.
-is_null_penalty: True # whether the null selection should be penaltied
+is_null_penalty: False # whether the null selection should be penaltied
 
 use_entropy: True  # whether using BS selection entropy in the reward
-entropy_factor: 500.   # reward + entropy_factor * entropy
+entropy_factor: 100.   # reward + entropy_factor * entropy

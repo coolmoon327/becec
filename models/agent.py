@@ -36,18 +36,32 @@ class Agent(object):
         log_path = f"{log_dir}/agent-{agent_type}-{n_agent}"
         self.logger = Logger(log_path)
 
-    def update_actor_learner(self, learner_w_queue, training_on):
+    def set_value_net(self, value_net):
+        """Used in Wolpertinger Architecture"""
+        self.value_net = value_net
+        
+    def update_learner(self, learner_w_queue, training_on):
         """Update local actor to the actor from learner. """
         if not training_on.value:
             return
         try:
-            source = learner_w_queue.get_nowait()
+            if self.config['use_wolp']:
+                source_p, source_v = learner_w_queue.get_nowait()
+            else:
+                source_p = learner_w_queue.get_nowait()
         except:
             return
-        target = self.actor
-        for target_param, source_param in zip(target.parameters(), source):
+        # 更新 actor
+        target_p = self.actor
+        for target_param, source_param in zip(target_p.parameters(), source_p):
             w = torch.tensor(source_param).float()
             target_param.data.copy_(w)
+        # 更新 critic (仅在 wolp 框架下)
+        if self.config['use_wolp']:
+            target_v = self.value_net
+            for target_param, source_param in zip(target_v.parameters(), source_v):
+                w = torch.tensor(source_param).float()
+                target_param.data.copy_(w)
 
     def run(self, training_on, replay_queue, learner_w_queue, update_step):
         # Initialise deque buffer to store experiences for N-step returns
@@ -213,7 +227,7 @@ class Agent(object):
                     self.save(f"M_{self.config['M']}_T_{self.config['T']}_Dt_{self.config['delta_t']}_Gamma_{self.config['discount_rate']}")
 
             if self.agent_type == "exploration" and self.local_episode % self.config['update_agent_ep'] == 0:
-                self.update_actor_learner(learner_w_queue, training_on)
+                self.update_learner(learner_w_queue, training_on)
 
         empty_torch_queue(replay_queue)
         print(f"Agent {self.n_agent} done.")
