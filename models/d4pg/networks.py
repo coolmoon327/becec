@@ -20,7 +20,7 @@ class LayerNorm(nn.Module):
 
         y = (x - mean) / (std + self.eps)
         if self.affine:
-            shape = [1, -1] + [1] * (x.dim() - 2)
+            shape = [1] + [1] * (x.dim() - 2) + [-1]
             y = self.gamma.view(*shape) * y + self.beta.view(*shape)
         return y
 
@@ -56,7 +56,7 @@ class ValueNetwork(nn.Module):
         self.to(device)
 
     def forward(self, state, action):
-        x = torch.cat([state, action], 1)
+        x = torch.cat([state, action], len(action.shape)-1)
 
         x = torch.relu(self.linear1(x))
         x = torch.relu(self.ln1(x))
@@ -64,11 +64,11 @@ class ValueNetwork(nn.Module):
         x = torch.relu(self.linear2(x))
         x = torch.relu(self.ln2(x))
 
-        x = self.linear3(x)
+        x = torch.softmax(self.linear3(x), dim=1)
         return x
 
     def get_probs(self, state, action):
-        return torch.softmax(self.forward(state, action), dim=1)
+        return self.forward(state, action)
 
 
 class PolicyNetwork(nn.Module):
@@ -91,6 +91,7 @@ class PolicyNetwork(nn.Module):
         self.ln2 = nn.LayerNorm(hidden_size)
         
         self.linear3 = nn.Linear(hidden_size, num_actions)
+        self.softsign = nn.Softsign()
 
         self.to(device)
 
@@ -101,7 +102,10 @@ class PolicyNetwork(nn.Module):
         x = self.linear2(x)
         x = torch.relu(self.ln2(x))
         
-        x = torch.tanh(self.linear3(x))
+        # x = torch.tanh(self.linear3(x))
+        x = self.linear3(x)
+        x = self.softsign(x)
+
         return x
 
     def to(self, device):

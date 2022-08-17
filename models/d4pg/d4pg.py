@@ -10,7 +10,7 @@ from utils.logger import Logger
 
 from .networks import ValueNetwork
 from .l2_projection import _l2_project
-
+from models.wolp.wolp_agent import WolpertingerAgent
 
 class LearnerD4PG(object):
     """Policy and value network update routine. """
@@ -50,6 +50,9 @@ class LearnerD4PG(object):
         self.target_value_net = target_value_net
         self.target_policy_net = target_policy_net
 
+        if config['use_wolp']:
+            self.wolp_agent = WolpertingerAgent(config, self.device)
+
         for target_param, param in zip(self.target_value_net.parameters(), self.value_net.parameters()):
             target_param.data.copy_(param.data)
 
@@ -83,10 +86,19 @@ class LearnerD4PG(object):
         # ------- Update critic -------
 
         # Predict next actions with target policy network
-        next_action = self.target_policy_net(next_state)
+        next_action = self.target_policy_net(next_state).detach()
+        
+        if self.config['use_wolp']:
+            if not isinstance(next_action, np.ndarray):
+                next_action = next_action.cpu().numpy().astype(np.float64)
+            if next_action.ndim == 1:
+                next_action = np.expand_dims(next_action, axis=0)
+            raw_ans, ans = self.wolp_agent.wolp_action(self.value_net, state, next_action)
+            next_action = torch.from_numpy(raw_ans).type(torch.FloatTensor).to(self.device)
+
 
         # Predict Z distribution with target value network
-        target_value = self.target_value_net.get_probs(next_state, next_action.detach())
+        target_value = self.target_value_net.get_probs(next_state, next_action)
 
         # Get projected distribution
         target_z_projected = _l2_project(next_distr_v=target_value,

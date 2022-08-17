@@ -9,7 +9,7 @@ import numpy as np
 from utils.utils import OUNoise, make_gif, empty_torch_queue
 from utils.logger import Logger
 from env.utils import create_env_wrapper
-
+from models.wolp.wolp_agent import WolpertingerAgent
 
 class Agent(object):
 
@@ -31,6 +31,9 @@ class Agent(object):
 
         self.actor = policy
         print("Agent ", n_agent, self.actor.device)
+
+        if config['use_wolp']:
+            self.wolp_agent = WolpertingerAgent(config, self.actor.device)
 
         # Logger
         log_path = f"{log_dir}/agent-{agent_type}-{n_agent}"
@@ -108,6 +111,15 @@ class Agent(object):
                     action = action.squeeze(0)
                 else:
                     action = action.detach().cpu().numpy().flatten()
+                
+                if self.config['use_wolp']:
+                    if not isinstance(action, np.ndarray):
+                        action = action.cpu().numpy().astype(np.float64)
+                    if action.ndim == 1:
+                        action = np.expand_dims(action, axis=0)
+                    raw_ans, ans = self.wolp_agent.wolp_action(self.value_net, state, action)
+                    action = raw_ans    # 因为 env 会进行 action 的映射, 且 action 会存入 memory, 因此选择 raw
+                
                 next_state, reward, done = self.env_wrapper.step(action)
 
                 if self.agent_type == "exploitation" and self.config["env"] == "BECEC":
@@ -139,6 +151,7 @@ class Agent(object):
                 state = self.env_wrapper.normalise_state(state)
                 reward = self.env_wrapper.normalise_reward(reward)
 
+                action = np.squeeze(action)
                 self.exp_buffer.append((state, action, reward))
 
                 # We need at least N steps in the experience buffer before we can compute Bellman

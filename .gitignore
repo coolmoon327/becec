@@ -1,6 +1,7 @@
 results/
+__pycache__/
+data/
 *.out
 *.pyc
-data
 
 !*.py
