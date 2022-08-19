@@ -20,7 +20,7 @@ class LayerNorm(nn.Module):
 
         y = (x - mean) / (std + self.eps)
         if self.affine:
-            shape = [1] + [1] * (x.dim() - 2) + [-1]
+            shape = [1, -1] + [1] * (x.dim() - 2)
             y = self.gamma.view(*shape) * y + self.beta.view(*shape)
         return y
 
@@ -56,7 +56,7 @@ class ValueNetwork(nn.Module):
         self.to(device)
 
     def forward(self, state, action):
-        x = torch.cat([state, action], len(action.shape)-1)
+        x = torch.cat([state, action], 1)
 
         x = torch.relu(self.linear1(x))
         x = torch.relu(self.ln1(x))

@@ -37,7 +37,7 @@ class Space:
         3. 找到邻近点的笛卡尔积, 作为动作空间
         """
         dims = self._dimensions
-        points_in_each_axis = 3     # total points number = points_in_each_axis ** dims
+        points_in_each_axis = 2     # total points number = points_in_each_axis ** dims
         input = np.squeeze(input)
 
         axis = []
@@ -64,6 +64,7 @@ class Space:
         return space
 
     def search_point(self, point, k):
+        # point 不能输入 batch
         p_raw = point
         if not isinstance(point, np.ndarray):
             p_raw = np.array([p_raw]).astype(np.float64).flatten()
@@ -72,24 +73,30 @@ class Space:
         knns = []
         knns_raw = []
 
-        batch_size = p_in.shape[0]
-        for b in range(batch_size):
-            space = self.rebuild_flann(p_in[b])
-            search_res, _ = self._flann.nn_index(p_in[b], k)
-            search_res = np.squeeze(search_res)
+        # batch_size = p_in.shape[0]
+        # for b in range(batch_size):
+        #     space = self.rebuild_flann(p_in[b])
+        #     search_res, _ = self._flann.nn_index(p_in[b], k)
+        #     search_res = np.squeeze(search_res)
 
-            knns.append(space[search_res].tolist())
-            temp_raw = []
-            for p in knns[b]:
-                temp_raw.append(self.import_point(p))
-            knns_raw.append(temp_raw)
+        #     knns.append(space[search_res].tolist())
+        #     temp_raw = []
+        #     for p in knns[b]:
+        #         temp_raw.append(self.import_point(p))
+        #     knns_raw.append(temp_raw)
+        space = self.rebuild_flann(p_in)
+        search_res, _ = self._flann.nn_index(p_in, k)
 
+        knns = space[np.squeeze(search_res)]
         if k == 1:
-            p_out = [p_out]
+            knns = [knns]
+
+        for p in knns:
+            knns_raw.append(self.import_point(p))
         
         knns_raw = np.array(knns_raw)
         knns = np.array(knns)
-        return knns_raw, knns   # batch_size, k, point_size
+        return knns_raw, knns   # k, point_size
     
     def import_point(self, point):
         return self._space_low + self._k * (point - self._low)
@@ -106,10 +113,10 @@ class Space:
 # with open('config_d4pg.yml', 'r') as ymlfile:
 #     config = yaml.safe_load(ymlfile)
 # ds = Space(config)
-# point = np.array([[0. for _ in range(config['n_tasks'])]])
-# point[:, 1] = -1.
-# point[:, 4] = 0.6
+# point = np.array([0. for _ in range(config['n_tasks'])])
+# point[1] = -1.
+# point[4] = 0.6
 # print(point)
-# output, output_2 = ds.search_point(point, 20)
+# output, output_2 = ds.search_point(point, 10)
 # print(output)
 # print(output_2)

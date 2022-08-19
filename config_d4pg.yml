@@ -8,10 +8,10 @@ num_agents: 8
 # Training parameters
 
 model: d4pg
-batch_size: 64
+batch_size: 256
 num_steps_train: 1_000_000 # number of episodes from all agents
 max_ep_length: 1000 # maximum number of steps per episode
-replay_mem_size: 10_000_000 # maximum capacity of replay memory
+replay_mem_size: 1_000_000 # maximum capacity of replay memory
 priority_alpha: 0.6 # controls the randomness vs prioritisation of the prioritised sampling (0.0 = Uniform sampling, 1.0 = Greedy prioritisation)
 priority_beta_start: 0.4 # starting value of beta - controls to what degree IS weights influence the gradient updates to correct for the bias introduces by priority sampling (0 - no correction, 1 - full correction)
 priority_beta_end: 1 # beta will be linearly annelaed from its start value to this value thoughout training
@@ -48,7 +48,7 @@ tau: 0.005 # parameter for soft target network updates
 # 1. learner_w_queue use [actor_params, critic_params] instead of just actor_params
 # 2. 
 use_wolp: True
-k_nearest_neighbors: 100 # the k of K-means
+k_nearest_neighbors: 1000 # the k of K-means
 
 
 # Miscellaneous
@@ -94,4 +94,4 @@ penalty: -1000.
 is_null_penalty: False # whether the null selection should be penaltied
 
 use_entropy: True  # whether using BS selection entropy in the reward
-entropy_factor: 200.   # reward + entropy_factor * entropy
+entropy_factor: 500.   # reward + entropy_factor * entropy
