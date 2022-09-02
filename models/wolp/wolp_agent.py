@@ -26,7 +26,7 @@ class WolpertingerAgent():
         if state.ndim < 2:
             state = np.expand_dims(state, axis=0)
 
-        batch_size = len(proto_action)
+        batch_size = len(state)
         for b in range(batch_size):
             # get the proto_action's k nearest neighbors
             # raw_actions 对应神经网络的输出, actions 对应动作空间的值

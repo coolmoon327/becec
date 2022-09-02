@@ -32,13 +32,13 @@ save_reward_threshold: 1 # difference in best reward to save agent model
 critic_learning_rate: 0.0005
 actor_learning_rate: 0.0001
 dense_size: 1024 # size of the 2 hidden layers in networks
-num_atoms: 51 # number of atoms in output layer of distributed critic
+num_atoms: 11 # number of atoms in output layer of distributed critic
 v_min: -1500 # lower bound of critic value output distribution
 v_max: 1500 # upper bound of critic value output distribution
 tau: 0.005 # parameter for soft target network updates
 
 # OUNoise Param
-decay_period: 500_000
+decay_period: 100_000
 min_sigma: 0.3
 max_sigma: 0.8
 
@@ -65,7 +65,7 @@ results_path: results
 shuffle_bs: 1
 
 M: 20 # number of BSs
-delta_t: 5 # number of future slots the algorithm use to allocate at once
+delta_t: 10 # number of future slots the algorithm use to allocate at once
 T: 230 # number of time slots
 frame: 10 # the length of a frame (warning: will be discarded)
 n_tasks: 5 # number of tasks in a group
