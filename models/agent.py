@@ -112,11 +112,15 @@ class Agent(object):
                 else:
                     action = action.detach().cpu().numpy().flatten()
                 
-                if self.config['use_wolp']:
-                    if not isinstance(action, np.ndarray):
+                if not isinstance(action, np.ndarray):
+                    if torch.is_tensor(action):
                         action = action.cpu().numpy().astype(np.float64)
-                    if action.ndim == 1:
+                    else:
+                        action = np.array(action)
+                    if action.ndim == 0:
                         action = np.expand_dims(action, axis=0)
+
+                if self.config['use_wolp']:
                     raw_ans, ans = self.wolp_agent.wolp_action(self.value_net, state, action)
                     action = raw_ans    # 因为 env 会进行 action 的映射, 且 action 会存入 memory, 因此选择 raw
                 
@@ -152,6 +156,8 @@ class Agent(object):
                 reward = self.env_wrapper.normalise_reward(reward)
 
                 action = np.squeeze(action)
+                if action.ndim == 0:
+                    action = np.expand_dims(action, axis=0)
                 self.exp_buffer.append((state, action, reward))
 
                 # We need at least N steps in the experience buffer before we can compute Bellman

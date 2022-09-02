@@ -48,8 +48,11 @@ class Env_tsp():
 		'''
 			BS_ID=self.BS
 		'''
+
+		self.slots = get_env.config['delta_t']
+
 		task = get_env.get_BS_tasks_external(BS_ID=self.BS)
-		data = np.empty((1, len(task), 2 + self.slots * 2))
+		data = np.empty((1, len(task), 2 + get_env.config['delta_t'] * 2))
 		'''
 			data 合成一批的数据
 				1. 0 位置cpu_requirement
@@ -65,8 +68,9 @@ class Env_tsp():
 				data[0][i][2 + slot] = \
 					get_env.C(i=self.BS, t=slot) # i = self.BS
 			for slot in range(get_env.config['delta_t']):
-				data[0][i][32 + slot] = \
-					get_env.p(i=self.BS, t=slot)
+				# data[0][i][32 + slot] = \
+				# 	get_env.p(i=self.BS, t=slot)
+				data[0][i][2 + get_env.config['delta_t'] + slot] = get_env.p(i=self.BS, t=slot)
 		return torch.Tensor(data)
 	
 	def get_env_nodes(self, seed = None, get_env=None):

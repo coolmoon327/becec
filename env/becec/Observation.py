@@ -232,7 +232,7 @@ class Observation(object):
             entropy = 0.
             for BS in range(self.config["M"]):
                 num = target_BS.count(BS)
-                p = num / 10.
+                p = num / self.config['n_tasks']
                 if num > 0:
                     entropy += -p*np.log(p)
             # 越平均，熵越大

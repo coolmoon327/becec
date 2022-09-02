@@ -37,8 +37,10 @@ class Space:
         3. 找到邻近点的笛卡尔积, 作为动作空间
         """
         dims = self._dimensions
-        points_in_each_axis = 2     # total points number = points_in_each_axis ** dims
+        points_in_each_axis = self.config['points_in_each_axis']     # total points number = points_in_each_axis ** dims
         input = np.squeeze(input)
+        if dims == 1:
+            input = [input]
 
         axis = []
         for i in range(dims):

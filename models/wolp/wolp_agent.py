@@ -49,7 +49,7 @@ class WolpertingerAgent():
                 # TODO 检查这里是否有效将分布变成了 Q 值
                 target_value = critic.get_probs(s, raw_actions)
                 target_value = target_value * torch.from_numpy(critic.z_atoms).float().to(self.device)
-                actions_evaluation = torch.sum(target_value, dim=-1)
+                actions_evaluation = torch.sum(target_value, dim=1)
             else:
                 actions_evaluation = critic(s, raw_actions)
 

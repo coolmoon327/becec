@@ -56,6 +56,8 @@ class Stage_Two_Pointer:
         self.u = 0.
         self.penalty = 0.
 
+        self.log_thrown_tasks_num = 0
+
         penalty = self._env.config['penalty']
         penalty_mode = self._env.config['penalty_mode']
 

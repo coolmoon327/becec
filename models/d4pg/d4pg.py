@@ -1,3 +1,4 @@
+from distutils.command.config import config
 import time
 import numpy as np
 import torch
@@ -88,7 +89,7 @@ class LearnerD4PG(object):
         # Predict next actions with target policy network
         next_action = self.target_policy_net(next_state).detach()
         
-        if self.config['use_wolp']:
+        if self.config['use_wolp'] and config['wolp_train_mode']:
             if not isinstance(next_action, np.ndarray):
                 next_action = next_action.cpu().numpy().astype(np.float64)
             if next_action.ndim == 1:

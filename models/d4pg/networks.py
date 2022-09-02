@@ -58,10 +58,10 @@ class ValueNetwork(nn.Module):
     def forward(self, state, action):
         x = torch.cat([state, action], 1)
 
-        x = torch.relu(self.linear1(x))
+        x = self.linear1(x)
         x = torch.relu(self.ln1(x))
 
-        x = torch.relu(self.linear2(x))
+        x = self.linear2(x)
         x = torch.relu(self.ln2(x))
 
         x = torch.softmax(self.linear3(x), dim=1)
