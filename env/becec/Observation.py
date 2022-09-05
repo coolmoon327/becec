@@ -68,10 +68,10 @@ class Observation(object):
                 # n_observations = M*delta_t*2 + n_tasks*3
                 for t in range(delta_t):
                     state[index] = env.C(i, t) / 1e3
-                    if env.p(i, t) < 1. :
-                        state[index+1] = env.p(i, t) * 100
+                    if env.p(i, t) == 1.:
+                        state[index+1] = 5e3
                     else:
-                        state[index+1] = env.p(i, t)
+                        state[index+1] = env.p(i, t) * 1e3
                     index += 2
             
             elif state_mode == 1:
@@ -103,15 +103,16 @@ class Observation(object):
         batch_begin_index = env.task_batch_num * n_tasks  # 批首任务的下标
         next_batch_begin_index = min((env.task_batch_num+1) * n_tasks, len(env.task_set))    # 下一批首任务的下标
         
-        # 任务信息排序
-        self._sort_batch_tasks(batch_begin_index, next_batch_begin_index)
+        if self.config['sort_tasks']:
+            # 任务信息排序
+            self._sort_batch_tasks(batch_begin_index, next_batch_begin_index)
 
         for n in range(batch_begin_index, next_batch_begin_index):
             state[index] = env.task_set[n].w
             state[index+1] = env.task_set[n].alpha
-            index += 2
-            # state[index+2] = env.task_set[n].u_0
-            # index += 3
+            # index += 2
+            state[index+2] = env.task_set[n].u_0
+            index += 3
         return numpy.array(state)
 
     def execute(self, action_raw):

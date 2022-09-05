@@ -32,7 +32,7 @@ class Agent(object):
         self.actor = policy
         print("Agent ", n_agent, self.actor.device)
 
-        if config['use_wolp']:
+        if config['wolp_mode'] > 0:
             self.wolp_agent = WolpertingerAgent(config, self.actor.device)
 
         # Logger
@@ -48,7 +48,7 @@ class Agent(object):
         if not training_on.value:
             return
         try:
-            if self.config['use_wolp']:
+            if self.config['wolp_mode'] > 0:
                 source_p, source_v = learner_w_queue.get_nowait()
             else:
                 source_p = learner_w_queue.get_nowait()
@@ -60,7 +60,7 @@ class Agent(object):
             w = torch.tensor(source_param).float()
             target_param.data.copy_(w)
         # 更新 critic (仅在 wolp 框架下)
-        if self.config['use_wolp']:
+        if self.config['wolp_mode'] > 0:
             target_v = self.value_net
             for target_param, source_param in zip(target_v.parameters(), source_v):
                 w = torch.tensor(source_param).float()
@@ -120,9 +120,10 @@ class Agent(object):
                     if action.ndim == 0:
                         action = np.expand_dims(action, axis=0)
 
-                if self.config['use_wolp']:
-                    raw_ans, ans = self.wolp_agent.wolp_action(self.value_net, state, action)
-                    action = raw_ans    # 因为 env 会进行 action 的映射, 且 action 会存入 memory, 因此选择 raw
+                if self.config['wolp_mode'] > 0:
+                    if self.config['wolp_mode'] != 3 or self.agent_type == "exploitation":
+                        raw_ans, ans = self.wolp_agent.wolp_action(self.value_net, state, action)
+                        action = raw_ans    # 因为 env 会进行 action 的映射, 且 action 会存入 memory, 因此选择 raw
                 
                 next_state, reward, done = self.env_wrapper.step(action)
 

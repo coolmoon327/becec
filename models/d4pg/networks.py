@@ -74,12 +74,14 @@ class ValueNetwork(nn.Module):
 class PolicyNetwork(nn.Module):
     """Actor - return action value given states. """
 
-    def __init__(self, num_states, num_actions, hidden_size, device='cuda'):
+    def __init__(self, num_states, num_actions, hidden_size, device='cuda', group_num=1, discrete_action=False):
         """
         Args:
             num_states (int): state dimension
             num_actions (int):  action dimension
             hidden_size (int): size of the hidden layer
+            group_num (int): if use discrete actions, input the actions number, each action is an indepedent group (num_actions is splited into several groups)
+                              default 1 means there is only one group, group_size = num_actions
         """
         super(PolicyNetwork, self).__init__()
         self.device = device
@@ -91,7 +93,11 @@ class PolicyNetwork(nn.Module):
         self.ln2 = nn.LayerNorm(hidden_size)
         
         self.linear3 = nn.Linear(hidden_size, num_actions)
+        
+        self.discrete_action = discrete_action
+        self.groups_num = group_num
         self.softsign = nn.Softsign()
+        self.softmax = nn.Softmax(dim=-1)
 
         self.to(device)
 
@@ -104,7 +110,13 @@ class PolicyNetwork(nn.Module):
         
         # x = torch.tanh(self.linear3(x))
         x = self.linear3(x)
-        x = self.softsign(x)
+
+        if self.discrete_action:
+            x = torch.chunk(x, self.groups_num, dim=-1)
+            x = [self.softmax(x[i]) for i in range(self.groups_num)]
+            x = torch.cat(x, dim=-1)
+        else:
+            x = self.softsign(x)
 
         return x
 
@@ -113,6 +125,7 @@ class PolicyNetwork(nn.Module):
         self.device = device
 
     def get_action(self, state):
+        # actions are mapped into [-1., 1.]
         state = torch.from_numpy(state).float().unsqueeze(0).to(self.device)
         action = self.forward(state)
         return action

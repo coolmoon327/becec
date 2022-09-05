@@ -152,7 +152,7 @@ class BaseStation:
         """
         if self.cpu_remain(t=t) > 0:
             # p[i][t] = 1 / {1 - (load_internal[i][t] + load_external[i][t]) / C_internal[i]} * p_coef[i]
-            return self.base_unit_price() / (1. - self.cpu_load(t=t) / self.cpu_capacity())
+            return self.base_unit_price() / (1. - (self.cpu_load(t=t) / self.cpu_capacity()))
         else:
             # 没有剩余资源，则返回 1，表示资源不出售
             return 1.

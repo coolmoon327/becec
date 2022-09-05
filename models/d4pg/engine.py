@@ -132,12 +132,16 @@ class Engine(object):
         processes.append(p)
 
         # actor
-        target_policy_net = PolicyNetwork(config['state_dim'], config['action_dim'],
-                                          config['dense_size'], device=config['device'])
-        policy_net = copy.deepcopy(target_policy_net)
-        policy_net_cpu = PolicyNetwork(config['state_dim'], config['action_dim'],
-                                          config['dense_size'], device=config['agent_device'])
-        target_policy_net.share_memory()
+        if config['env'] == 'BECEC' and config['action_mode'] == 1:
+            target_policy_net = PolicyNetwork(config['state_dim'], config['action_dim'], config['dense_size'], device=config['device'], group_num=config['n_tasks'], discrete_action=True)
+            policy_net = copy.deepcopy(target_policy_net)
+            policy_net_cpu = PolicyNetwork(config['state_dim'], config['action_dim'], config['dense_size'], device=config['agent_device'], group_num=config['n_tasks'], discrete_action=True)
+            target_policy_net.share_memory()
+        else:
+            target_policy_net = PolicyNetwork(config['state_dim'], config['action_dim'], config['dense_size'], device=config['device'])
+            policy_net = copy.deepcopy(target_policy_net)
+            policy_net_cpu = PolicyNetwork(config['state_dim'], config['action_dim'], config['dense_size'], device=config['agent_device'])
+            target_policy_net.share_memory()
 
         # critic
         target_value_net = ValueNetwork(config['state_dim'], config['action_dim'], config['dense_size'], 

@@ -51,7 +51,7 @@ class LearnerD4PG(object):
         self.target_value_net = target_value_net
         self.target_policy_net = target_policy_net
 
-        if config['use_wolp']:
+        if config['wolp_mode'] > 0:
             self.wolp_agent = WolpertingerAgent(config, self.device)
 
         for target_param, param in zip(self.target_value_net.parameters(), self.value_net.parameters()):
@@ -89,7 +89,7 @@ class LearnerD4PG(object):
         # Predict next actions with target policy network
         next_action = self.target_policy_net(next_state).detach()
         
-        if self.config['use_wolp'] and self.config['wolp_train_mode']:
+        if self.config['wolp_mode'] == 1:
             if not isinstance(next_action, np.ndarray):
                 next_action = next_action.cpu().numpy().astype(np.float64)
             if next_action.ndim == 1:
@@ -156,7 +156,7 @@ class LearnerD4PG(object):
         # Send updated learner to the queue
         if update_step.value % 100 == 0:
             try:
-                if self.config['use_wolp']:
+                if self.config['wolp_mode'] > 0:
                     # 使用 wolp, 则 agent 也需要 critic 网络
                     actor_params = [p.data.cpu().detach().numpy() for p in self.policy_net.parameters()]
                     critic_params = [v.data.cpu().detach().numpy() for v in self.value_net.parameters()]

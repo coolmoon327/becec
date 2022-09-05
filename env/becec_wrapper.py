@@ -62,13 +62,13 @@ class BECEC(EnvWrapper):
         
         if state_mode == 0:
             # 方案一 - 观测内容：基站信息（delta_t 个时隙的 C 和 p） + 任务信息（w, u_0, alpha）
-            n_observations = M*delta_t*2 + n_tasks*2
+            n_observations = M*delta_t*2 + n_tasks*3
         elif state_mode == 1:
             # 方案二 - 观测内容：基站信息（C、p 信息聚合到两个维度上） + 任务信息（w, u_0, alpha）
-            n_observations = M*2 + n_tasks*2         
+            n_observations = M*2 + n_tasks*3   
         elif state_mode == 2:
             # 方案三 - 观测内容：基站信息（delta_t 个时隙的 C） + 任务信息（w, u_0, alpha）
-            n_observations = M*delta_t + n_tasks*2
+            n_observations = M*delta_t + n_tasks*3
 
         if action_mode == 0:
             # 方案一 - 行为内容：任务调度（目标基站） 输出 [-1, 1] 量化成 M+1 个基站编号（其中一个是 null）

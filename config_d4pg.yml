@@ -2,20 +2,20 @@
 
 env: BECEC
 random_seed: 2077
-num_agents: 8
+num_agents: 5
 
 
 # Training parameters
 
 model: d4pg
-batch_size: 128
-num_steps_train: 1_000_000 # number of episodes from all agents
+batch_size: 512
+num_steps_train: 2_000_000 # number of episodes from all agents
 max_ep_length: 1000 # maximum number of steps per episode
 replay_mem_size: 1_000_000 # maximum capacity of replay memory
 priority_alpha: 0.6 # controls the randomness vs prioritisation of the prioritised sampling (0.0 = Uniform sampling, 1.0 = Greedy prioritisation)
 priority_beta_start: 0.4 # starting value of beta - controls to what degree IS weights influence the gradient updates to correct for the bias introduces by priority sampling (0 - no correction, 1 - full correction)
 priority_beta_end: 1 # beta will be linearly annelaed from its start value to this value thoughout training
-discount_rate: 0.95 # Discount rate (gamma) for future rewards
+discount_rate: 0.9 # Discount rate (gamma) for future rewards
 n_step_returns: 1 # number of future steps to collect experiences for N-step returns
 update_agent_ep: 1 # agent gets latest parameters from learner every update_agent_ep episodes
 replay_queue_size: 1024 # queue with replays from all the agents
@@ -31,25 +31,31 @@ save_reward_threshold: 1 # difference in best reward to save agent model
 
 critic_learning_rate: 0.0005
 actor_learning_rate: 0.0001
-dense_size: 1024 # size of the 2 hidden layers in networks
+dense_size: 2000 # size of the 2 hidden layers in networks
 num_atoms: 11 # number of atoms in output layer of distributed critic
 v_min: -1500 # lower bound of critic value output distribution
-v_max: 1500 # upper bound of critic value output distribution
+v_max: 2000 # upper bound of critic value output distribution
 tau: 0.005 # parameter for soft target network updates
 
 # OUNoise Param
 decay_period: 100_000
-min_sigma: 0.3
-max_sigma: 0.8
+min_sigma: 0.1
+max_sigma: 0.5
+
 
 # Wolpertinger Architecture, refer to https://arxiv.org/pdf/1512.07679.pdf
 # Only can be used in d4pg:
 # 1. learner_w_queue use [actor_params, critic_params] instead of just actor_params
-# 2. 
-use_wolp: True
-wolp_train_mode: False # train critic network by wolp
-k_nearest_neighbors: 300 # the k of K-means
-points_in_each_axis: 4 # total points number = points_in_each_axis ** dims
+# 2. cannot be used with discrete softmax option (action_mode = 1)
+# use_wolp: False
+# wolp_train_mode: False # train critic network by wolp
+# mode 0: Don't use wolp
+# mode 1: Use full wolp
+# mode 2: Only use wolp in exploration and exploitation (no train)
+# mode 3: Only use wolp in exploitation (no train)
+wolp_mode: 0
+k_nearest_neighbors: 1000 # the k of K-means
+points_in_each_axis: 2 # total points number = points_in_each_axis ** dims
 
 # Miscellaneous
 
@@ -64,10 +70,12 @@ results_path: results
 # 2: shuffle BS and Null choices [0, M]
 shuffle_bs: 1
 
-M: 20 # number of BSs
-delta_t: 10 # number of future slots the algorithm use to allocate at once
-T: 230 # number of time slots
-frame: 10 # the length of a frame (warning: will be discarded)
+sort_tasks: False
+
+M: 10 # number of BSs
+delta_t: 5 # number of future slots the algorithm use to allocate at once
+T: 200 # number of time slots
+# frame: 10 # the length of a frame (warning: was discarded)
 n_tasks: 5 # number of tasks in a group
 # frame_mode
 # mode 0: set a solid frame length
@@ -75,14 +83,14 @@ n_tasks: 5 # number of tasks in a group
 # mode 1: when number of tasks in cache reaches n_tasks, generate a new frame
 frame_mode: 1
 # state
-# mode 0: observation = BS Info (delta_t slots of C & p) + Task Info (w, alpha)
-# mode 1: observation = BS Info (delta_t slots of C) cast to 2 dimensions + Task Info (w, alpha)
-# mode 2: observation = BS Info (delta_t slots of C) + Task Info (w, alpha)
-state_mode: 1
+# mode 0: observation = BS Info (delta_t slots of C & p) + Task Info (w, alpha, u_0)
+# mode 1: observation = BS Info (delta_t slots of C) cast to 2 dimensions + Task Info (w, alpha, u_0)
+# mode 2: observation = BS Info (delta_t slots of C) + Task Info (w, alpha, u_0)
+state_mode: 2
 # action
 # plan 0: action = target BS numbers -- for each task, output [-1, 1] and quantify to  M+1 number (M BSs + 1 null)
-# plan 1: action = one-hot -- for each task, output (M+1)*[-1, 1] as a group, indicates the one-hot rate of BSs
-action_mode: 0
+# plan 1: action = one-hot -- for each task, output (M+1)*[0, 1] as a group (softmax), indicates the one-hot rate of BSs
+action_mode: 1
 # penalty
 # mode 0: throw all external_tasks in the busy BS, utinity += penalty*len(external_tasks)
 # mode 1: throw all external_tasks in the busy BS, utinity += penalty*len(exceeded_external_tasks)
