@@ -118,7 +118,7 @@ class Stage_Two_Pointer:
                         self.penalty += penalty
                         self.log_thrown_tasks_num += 1
                         tasks.pop(-1)
-                    elif penalty_mode == 3:
+                    elif penalty_mode == 3 or penalty_mode == 4:
                         # 不对失误进行惩罚, 找出并删除最差的任务
                         self.log_thrown_tasks_num += 1
                         min_r = 1e6
@@ -157,17 +157,20 @@ class Stage_Two_Pointer:
                             print("trace 和 task 的大小不匹配！")
                         
                         self.u += task.u_0
-
-                        if penalty_mode == 3:
-                            # 不分配 u-c<0 的任务
-                            uu,cc = cal_uc(i, task, alloc_list)
-                            r = uu-cc
-                            if r < 0:
-                                tasks.remove(task)
-                                # 还原 u 和 c
-                                self.u += -uu
-                                self.cost += -cc
-                                continue # 不执行后面的分配
+                        
+                        uu,cc = cal_uc(i, task, alloc_list)
+                        r = uu-cc
+                        if r < 0:
+                            tasks.remove(task)
+                            # 还原 u 和 c
+                            self.u += -uu
+                            self.cost += -cc
+                            if penalty_mode != 3:
+                                # 将负的 reward 作为 penalty 进行训练, 方便在 pure reward 中查看手动剔除负 reward 分配的效果
+                                # 如果是 3 模式, 则完全不考虑负 reward, 包括训练
+                                self.penalty += r
+                            # 完全不分配 u-c<0 的任务, 因为在测试中不会执行这类任务, 因此训练时不用考虑它们对环境的影响, 只用作为惩罚使用
+                            continue
 
                         # delta_t = self._env.config['delta_t']
                         # left_source = 0
