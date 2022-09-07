@@ -79,7 +79,7 @@ class Observation(object):
                 #  n_observations = M*2 + n_tasks*3
                 s1 = 0.
                 s2 = 0.
-                gamma = 1.05
+                gamma = 1.3
                 for t in range(delta_t):
                     c = env.C(i, t) / 1e3
                     # if env.p(i, t) < 1. :

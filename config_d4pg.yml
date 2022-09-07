@@ -2,13 +2,13 @@
 
 env: BECEC
 random_seed: 2077
-num_agents: 5
+num_agents: 8
 
 
 # Training parameters
 
 model: d4pg
-batch_size: 512
+batch_size: 1024
 num_steps_train: 2_000_000 # number of episodes from all agents
 max_ep_length: 1000 # maximum number of steps per episode
 replay_mem_size: 1_000_000 # maximum capacity of replay memory
@@ -20,7 +20,7 @@ n_step_returns: 1 # number of future steps to collect experiences for N-step ret
 update_agent_ep: 1 # agent gets latest parameters from learner every update_agent_ep episodes
 replay_queue_size: 1024 # queue with replays from all the agents
 batch_queue_size: 64 # queue with batches given to learner
-replay_memory_prioritized: 1
+replay_memory_prioritized: 0
 num_episode_save: 100
 device: cuda
 agent_device: cuda
@@ -31,7 +31,7 @@ save_reward_threshold: 1 # difference in best reward to save agent model
 
 critic_learning_rate: 0.0005
 actor_learning_rate: 0.0001
-dense_size: 2000 # size of the 2 hidden layers in networks
+dense_size: 4000 # size of the 2 hidden layers in networks
 num_atoms: 11 # number of atoms in output layer of distributed critic
 v_min: -500. # lower bound of critic value output distribution
 v_max: 1500 # upper bound of critic value output distribution
@@ -39,8 +39,8 @@ tau: 0.005 # parameter for soft target network updates
 
 # OUNoise Param
 decay_period: 100_000
-min_sigma: 0.1
-max_sigma: 0.5
+min_sigma: 0.2
+max_sigma: 0.6
 
 
 # Wolpertinger Architecture, refer to https://arxiv.org/pdf/1512.07679.pdf
@@ -86,7 +86,7 @@ frame_mode: 1
 # mode 0: observation = BS Info (delta_t slots of C & p) + Task Info (w, alpha, u_0)
 # mode 1: observation = BS Info (delta_t slots of C) cast to 2 dimensions + Task Info (w, alpha, u_0)
 # mode 2: observation = BS Info (delta_t slots of C) + Task Info (w, alpha, u_0)
-state_mode: 2
+state_mode: 1
 # action
 # plan 0: action = target BS numbers -- for each task, output [-1, 1] and quantify to  M+1 number (M BSs + 1 null)
 # plan 1: action = one-hot -- for each task, output (M+1)*[0, 1] as a group (softmax), indicates the one-hot rate of BSs

@@ -63,7 +63,7 @@ def sampler_worker(config, replay_queue, batch_queue, replay_priorities_queue, t
             batch = replay_buffer.sample(batch_size, beta)
             batch_queue.put_nowait(batch)
         except:
-            sleep(0.1)
+            # sleep(0.1)
             continue
 
         beta = min(config["priority_beta_end"], beta + global_episode.value/1e5)

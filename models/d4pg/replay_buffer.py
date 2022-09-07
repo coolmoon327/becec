@@ -55,7 +55,7 @@ class ReplayBuffer(object):
         return [np.array(obses_t), np.array(actions), np.array(rewards), np.array(obses_tp1), np.array(dones), np.array(
             gammas)]
 
-    def sample(self, batch_size, **kwags):
+    def sample(self, batch_size, *args, **kwags):
         """Sample a batch of experiences.
         Parameters
         ----------

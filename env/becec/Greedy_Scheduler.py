@@ -5,6 +5,11 @@ from .Environment import Environment
 from .Task import Task
 from utils.logger import Logger
 
+from .stage_two.Stage_Two_Pointer import Stage_Two_Pointer
+
+# 是否使用第二阶段算法 (若是, 则只会将任务发送给 BS, 由第二阶段执行分配)
+use_alg_2 = False
+
 class Scheduler():
     def __init__(self, config):
         self.config = config
@@ -23,6 +28,8 @@ class Scheduler():
         self.target_BS = []
         self.thrown_num = 0
 
+        self.alg_2 = Stage_Two_Pointer(self._env)
+
     def seed(self, seed):
         self._env.seed(seed)
     
@@ -37,6 +44,7 @@ class Scheduler():
 
     def reset(self):
         self._env.reset()
+        self.alg_2.reset()
         self.go_next_frame()
 
         self.target_BS.clear()
@@ -115,9 +123,14 @@ class Scheduler():
             # 1.2 分配任务
             # 分配给 BS
             self._env.schedule_task_to_BS(task=task, BS_ID=target_BS)
-            # 指定 slot
-            self._env.allocate_task_at_BS(task=task, BS_ID=target_BS, alloc_list=alloc_list)
-            reward += max_r
+            if use_alg_2:
+                c, u, penalty = self.alg_2.execute()
+                r = u - c + penalty
+            else:
+                # 指定 slot
+                self._env.allocate_task_at_BS(task=task, BS_ID=target_BS, alloc_list=alloc_list)
+                r = max_r
+            reward += r
 
             left_source = 0
             for t in range(delta_t):
@@ -147,7 +160,7 @@ class Scheduler():
             counts+=1
             episode_reward = 0.
 
-            self._env.reset()
+            self.reset()
 
             ep_start_time = time.time()
             # 完成一个 episode
