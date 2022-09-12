@@ -27,7 +27,7 @@ class Greedy(object):
         '''
         data = copy.deepcopy(inputs)
         data = data.numpy()
-        task_data, env_data = np.split(data, axis=2, indices_or_sections=[2 * len(tours[0])])
+        task_data, env_data = np.split(data, axis=2, indices_or_sections=[2])
         env_data = env_data[:, 0, :]
         '''
             此时传入的 tours 已经是numpy类型了
