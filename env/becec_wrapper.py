@@ -23,10 +23,10 @@ class BECEC(EnvWrapper):
     def normalise_reward(self, reward):
         if self.config['log_max'] < reward:
             self.config['log_max'] = reward
-            print(f"Max reward: {self.config['log_max']}")
+            # print(f"Max reward: {self.config['log_max']}")
         if self.config['log_min'] > reward:
             self.config['log_min'] = reward
-            print(f"Min reward: {self.config['log_min']}")
+            # print(f"Min reward: {self.config['log_min']}")
 
         # return reward
 

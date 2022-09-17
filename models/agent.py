@@ -145,6 +145,12 @@ class Agent(object):
                     if num_steps % 500 == 1:
                         print(f"---\nStep {update_step.value} Episode {self.local_episode} Exploitation:\n action={action}")
                         print(f"Actor outputs: {details[0]} \n Target BS: {details[1]} \n Thrown tasks: {details[2]} | Null BSs: {details[3]} | Reward: {int(details[4]*100)/100} | Pure reward: {int(details[5]*100)/100}")
+                        # if self.config['is_log_max_min_Q']:
+                        #     # print(f"Global min reward: {self.config['log_min']}, global max reward: {self.config['log_max']}. Recommended v_min = {self.config['log_min']*(1+self.config['discount_rate'])}, v_max = {self.config['log_max']*(1+self.config['discount_rate'])}.")
+                        #     try:
+                        #         print(f"Recommended v_min = {self.config['log_v_min']}, v_max = {self.config['log_v_max']}.")
+                        #     except:
+                        #         pass
                         print("---")
 
                 num_steps += 1
@@ -206,34 +212,34 @@ class Agent(object):
             self.logger.scalar_summary(f"agent_{self.agent_type}/episode_reward", episode_reward, step)
             self.logger.scalar_summary(f"agent_{self.agent_type}/episode_timing", time.time() - ep_start_time, step)
             if self.agent_type == "exploitation" and self.config["env"] == "BECEC":
-                self.logger.scalar_summary(f"agent_{self.agent_type}/episode_thrown_num", episode_thrown_num, step)
-                self.logger.scalar_summary(f"agent_{self.agent_type}/episode_null_num", episode_null_num, step)
-                self.logger.scalar_summary(f"agent_{self.agent_type}/episode_reward_pure", episode_reward_pure, step)
+                self.logger.scalar_summary(f"agent_{self.agent_type}/scheduling_errors", episode_thrown_num, step)
+                self.logger.scalar_summary(f"agent_{self.agent_type}/scheduling_nulls", episode_null_num, step)
+                self.logger.scalar_summary(f"agent_{self.agent_type}/episode_reward_PURE", episode_reward_pure, step)
 
                 discounted_cumulative_reward = 0.
                 gamma = self.config['discount_rate']
                 rewards.reverse()   # rewards list is reversed
                 for r in rewards:
                     discounted_cumulative_reward = discounted_cumulative_reward * gamma + r
-                self.logger.scalar_summary(f"agent_{self.agent_type}/discounted_cumulative_reward", discounted_cumulative_reward, step)
+                self.logger.scalar_summary(f"agent_{self.agent_type}/discounted_reward", discounted_cumulative_reward, step)
                 self.logger.scalar_summary(f"agent_{self.agent_type}/mean_reward", np.mean(rewards), step)
 
                 discounted_cumulative_reward_pure = 0.
                 rewards_pure.reverse()   # rewards list is reversed
                 for r in rewards_pure:
                     discounted_cumulative_reward_pure = discounted_cumulative_reward_pure * gamma + r
-                self.logger.scalar_summary(f"agent_{self.agent_type}/discounted_cumulative_reward_pure", discounted_cumulative_reward_pure, step)
-                self.logger.scalar_summary(f"agent_{self.agent_type}/mean_reward_pure", np.mean(rewards_pure), step)
+                self.logger.scalar_summary(f"agent_{self.agent_type}/discounted_reward_PURE", discounted_cumulative_reward_pure, step)
+                self.logger.scalar_summary(f"agent_{self.agent_type}/mean_reward_PURE", np.mean(rewards_pure), step)
 
                 dict1 = {}
                 for output in range(self.config["M"]+1):
                     dict1[f"output{output}"] = episode_outputs_times[output]
-                self.logger.scalars_summary(f"agent_{self.agent_type}/episode_actor_outputs", dict1, step)
+                self.logger.scalars_summary(f"agent_{self.agent_type}/bs_selection_OUTPUT", dict1, step)
                 
                 dict2 = {}
                 for bs in range(self.config["M"]):
                     dict2[f"BS{bs}"] = episode_bs_selected_times[bs]
-                self.logger.scalars_summary(f"agent_{self.agent_type}/episode_bs_selection", dict2, step)
+                self.logger.scalars_summary(f"agent_{self.agent_type}/bs_selection_PRACTICE", dict2, step)
             
 
             if self.config["save_reward_threshold"] >= 0 and training_on.value == 1:

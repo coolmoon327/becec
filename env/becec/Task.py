@@ -22,8 +22,8 @@ class Task:
     def random_generate(self):
         self.w = np.random.randint(5, 21) # [5, 20]
         # 保留三位小数
-        self.u_0 = np.random.randint(100000, 500001) / 1000.      # [100, 500]
-        # self.u_0 = np.random.randint(100000, 1000001) / 1000.
+        # self.u_0 = np.random.randint(100000, 500001) / 1000.      # [100, 500]
+        self.u_0 = np.random.randint(0, 500001) / 1000. # [0, 500]
         self.alpha = np.random.randint(5000, 25001) / 1000.      # [5, 25]
 
     def utility(self, t: int):

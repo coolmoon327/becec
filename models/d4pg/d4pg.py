@@ -137,6 +137,11 @@ class LearnerD4PG(object):
         policy_loss = self.value_net.get_probs(state, self.policy_net(state))
         policy_loss = policy_loss * torch.from_numpy(self.value_net.z_atoms).float().to(self.device)
         policy_loss = torch.sum(policy_loss, dim=1)
+
+        if self.config['is_log_max_min_Q']:
+            self.logger.scalar_summary("learner/log_v_min", torch.min(policy_loss).detach().cpu().numpy(), update_step.value)
+            self.logger.scalar_summary("learner/log_v_max", torch.max(policy_loss).detach().cpu().numpy(), update_step.value)
+
         policy_loss = -policy_loss.mean()
 
         self.policy_optimizer.zero_grad()

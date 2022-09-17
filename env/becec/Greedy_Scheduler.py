@@ -8,7 +8,7 @@ from utils.logger import Logger
 from .stage_two.Stage_Two_Pointer import Stage_Two_Pointer
 
 # 是否使用第二阶段算法 (若是, 则只会将任务发送给 BS, 由第二阶段执行分配)
-use_alg_2 = False
+use_alg_2 = True
 
 class Scheduler():
     def __init__(self, config):
@@ -156,6 +156,8 @@ class Scheduler():
     def run(self):
         counts = 0 
         counts_max = 100
+
+        sum_ = [0, 0]
         while counts < counts_max:
             counts+=1
             episode_reward = 0.
@@ -170,10 +172,16 @@ class Scheduler():
                 episode_reward += reward
 
             self.logger.scalar_summary(f"greedy/episode_reward", episode_reward, counts)
+            self.logger.scalar_summary(f"greedy/thrown_tasks", self.thrown_num, counts)
             self.logger.scalar_summary(f"greedy/episode_timing", time.time() - ep_start_time, counts)
             print(f"---\nEpisode {counts}")
             BS_print = []
             for BS in range(self.config["M"]):
                 BS_print.append(f"BS{BS}: {self.target_BS.count(BS)}")
+            
+            sum_[0] += self.thrown_num
+            sum_[1] += episode_reward
             print(f"{BS_print}\nThrown tasks: {self.thrown_num} | Pure reward: {episode_reward}")
             print("---")
+        
+        print(f"Mean: Thrown tasks: {sum_[0]/counts_max} | Pure reward: {sum_[1]/counts_max}")

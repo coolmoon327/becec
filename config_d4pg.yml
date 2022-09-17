@@ -2,7 +2,7 @@
 
 env: BECEC
 random_seed: 2077
-num_agents: 8
+num_agents: 16
 
 
 # Training parameters
@@ -20,10 +20,10 @@ n_step_returns: 1 # number of future steps to collect experiences for N-step ret
 update_agent_ep: 1 # agent gets latest parameters from learner every update_agent_ep episodes
 replay_queue_size: 1024 # queue with replays from all the agents
 batch_queue_size: 64 # queue with batches given to learner
-replay_memory_prioritized: 0
+replay_memory_prioritized: 1
 num_episode_save: 100
-device: cuda
-agent_device: cuda
+device: cuda:0
+agent_device: cuda:1
 save_buffer_on_disk: 0
 save_reward_threshold: 1 # difference in best reward to save agent model
 
@@ -31,11 +31,14 @@ save_reward_threshold: 1 # difference in best reward to save agent model
 
 critic_learning_rate: 0.0005
 actor_learning_rate: 0.0001
-dense_size: 4000 # size of the 2 hidden layers in networks
+dense_size: 2000 # size of the 2 hidden layers in networks
 num_atoms: 11 # number of atoms in output layer of distributed critic
-v_min: -500. # lower bound of critic value output distribution
-v_max: 1500 # upper bound of critic value output distribution
+v_min: -1000. # lower bound of critic value output distribution (depending on reward and discount_rate)
+v_max: 10000. # upper bound of critic value output distribution
 tau: 0.005 # parameter for soft target network updates
+
+is_log_max_min_Q: True  # help to log v_min and v_max through the training process
+                        # when the critic loss is getting to 0, these values are valid
 
 # OUNoise Param
 decay_period: 100_000
