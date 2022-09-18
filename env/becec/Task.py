@@ -24,7 +24,8 @@ class Task:
         # 保留三位小数
         # self.u_0 = np.random.randint(100000, 500001) / 1000.      # [100, 500]
         self.u_0 = np.random.randint(0, 500001) / 1000. # [0, 500]
-        self.alpha = np.random.randint(5000, 25001) / 1000.      # [5, 25]
+        # self.alpha = np.random.randint(5000, 25001) / 1000.      # [5, 25]
+        self.alpha = np.random.randint(5000, 50001) / 1000.      # [5, 50]
 
     def utility(self, t: int):
         """

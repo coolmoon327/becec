@@ -100,6 +100,11 @@ class Agent(object):
             if self.local_episode % 100 == 0:
                 print(f"Agent: {self.n_agent}  episode {self.local_episode}")
 
+            decay_period = self.config['decay_period']
+            min_epsilon = self.config['min_sigma']
+            max_epsilon = self.config['max_sigma']
+            M = self.config['M']
+
             ep_start_time = time.time()
             state = self.env_wrapper.reset()
             self.ou_noise.reset()
@@ -107,8 +112,39 @@ class Agent(object):
             while not done:
                 action = self.actor.get_action(state)
                 if self.agent_type == "exploration":
-                    action = self.ou_noise.get_action(action, num_steps)
-                    action = action.squeeze(0)
+                    if self.config['noise_type'] == 0:
+                        # type 0: OUNoise
+                        action = self.ou_noise.get_action(action, num_steps)
+                        action = action.squeeze(0)
+                    elif self.config['noise_type'] == 1:
+                        # type 1: Epsilon Greedy (All n_tasks choices as a group)
+                        epsilon = max_epsilon - (max_epsilon - min_epsilon) * min(1.0, num_steps/decay_period)
+                        if np.random.randint(0, 1000) / 1000. < epsilon:
+                            # 随机生成 action
+                            action = np.zeros(self.config['action_dim'])
+                            for i in range(self.config['n_tasks']):
+                                target_bs = np.random.randint(0, M+1)
+                                action[i*(M+1) + target_bs] = 1.
+                            action = torch.from_numpy(action)
+                        else:
+                            if not isinstance(action, np.ndarray):
+                                action = action.cpu().detach().numpy()
+                            action = action.squeeze(0)
+                    elif self.config['noise_type'] == 2:
+                        # type 2: Epsilon Greedy (Every task's choice is independently)
+                        epsilon = max_epsilon - (max_epsilon - min_epsilon) * min(1.0, num_steps/decay_period)
+                        if not isinstance(action, np.ndarray):
+                            action = action.cpu().detach().numpy()
+                        action = action.squeeze(0)
+                        for i in range(self.config['n_tasks']):
+                            if np.random.randint(0, 1000) / 1000. < epsilon:
+                                target_bs = np.random.randint(0, M+1)
+                                for j in range(M+1):
+                                    if j == target_bs:
+                                        action[i*(M+1) + j] = 1.
+                                    else:
+                                        action[i*(M+1) + j] = 0.
+
                 else:
                     action = action.detach().cpu().numpy().flatten()
                 
