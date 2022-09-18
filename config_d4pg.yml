@@ -4,11 +4,12 @@ env: BECEC
 random_seed: 2077
 num_agents: 16
 
+load_param_while_training: True
 
 # Training parameters
 
 model: d4pg
-batch_size: 1024
+batch_size: 512
 num_steps_train: 2_000_000 # number of episodes from all agents
 max_ep_length: 1000 # maximum number of steps per episode
 replay_mem_size: 5_000_000 # maximum capacity of replay memory
