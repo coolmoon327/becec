@@ -86,9 +86,10 @@ class Stage_Two_Pointer:
             self.env.BS = i
 
             while len(tasks):
-                # 在这个位置, 同级进行训练
-                self.test.active_search()
-                self.test.search_tour()
+                if self.test.get_env.config['stage2_alg_choice'] == 0:
+                    self.test.search_tour()  # 贪心
+                elif self.test.get_env.config['stage2_alg_choice'] == 1:
+                    self.test.active_search()  # dp
                 score = self.test.score[0]
                 u = self.test.u[0]
                 trace = self.test.trace

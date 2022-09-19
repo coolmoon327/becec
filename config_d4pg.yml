@@ -113,3 +113,5 @@ is_null_penalty: False # whether the null selection should be penaltied
 
 use_entropy: False  # whether using BS selection entropy in the reward
 entropy_factor: 500.   # reward + entropy_factor * entropy
+
+stage2_alg_choice: 1 # 二阶段算法 0 是用贪心, 1 是用 dp

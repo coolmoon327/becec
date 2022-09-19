@@ -65,7 +65,6 @@ class Test(object):
         '''
         # 获取 task 和 env 的训练信息, tasks 中包含了任务信息和环境信息
         tasks = self.env.get_task_nodes(self.cfg.seed, self.get_env)
-        print()
 
         # 获得随机的任务执行顺序
         batch, _, tasks_slots_info = tasks.size()
@@ -73,7 +72,11 @@ class Test(object):
 
         # 为随机的任务执行顺序打分, 得到一个基准, 同时需要传入 tasks 和 envs
         baseline = self.env.seq_score(tasks, random_tours)
+        self.score = baseline[0]
+        self.u = baseline[1]
+        self.trace = baseline[2]
 
+        """
         # 记录成本
         cost = baseline[0]
 
@@ -115,5 +118,5 @@ class Test(object):
         # print(
         #     'step:%d/%d, actic loss:%1.3f' % (
         #         i, cfg.steps, act_loss.data))
+        """
 
-    # 间隔一段时间保存模型的数据
