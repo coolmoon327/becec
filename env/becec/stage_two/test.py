@@ -58,7 +58,7 @@ class Test(object):
         """
         pass
 
-    def active_search(self, baseline):
+    def active_search(self):
         '''
         active search updates model parameters even during inference on a single input
         test input:(city_t,xy)
@@ -110,7 +110,7 @@ class Test(object):
         baseline = baseline[0] * self.cfg.alpha + (1 - self.cfg.alpha) * \
                    torch.mean(
             l_batch[0], dim=0)
-        print("act_loss is %f" % (act_loss.data))
+        # print("act_loss is %f" % (act_loss.data))
         # 用 tensorboard 替换
         # print(
         #     'step:%d/%d, actic loss:%1.3f' % (
