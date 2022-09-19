@@ -10,15 +10,19 @@ import numpy as np
 import os
 import sys
 
-from env.becec.stage_two.config import Config, load_pkl, pkl_parser, argparser, dump_pkl
+from env.becec.stage_two.config import Config, load_pkl, pkl_parser, argparser, \
+    dump_pkl
 from env.becec.stage_two.env import Env_tsp
 from env.becec.stage_two.test import Test
+
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, BASE)
 from env.becec.Environment import Environment
+
 noise_scale = 0.3
 batch_size = 128
 updates_per_step = 5
+
 
 class Stage_Two_Pointer:
     def __init__(self, env: Environment):
@@ -70,19 +74,22 @@ class Stage_Two_Pointer:
                 if alloc_list[t] > 0:
                     end_t = t
             u = task.utility(env.timer + end_t)
-            return u,c
+            return u, c
 
         for i in range(self._env.config['M']):
-            self.env.BS = i
             '''
                 self._env.get_BS_tasks_external(BS_ID=i)
                 任务获取的过程并不会清空任务列表
             '''
 
             tasks = self._env.get_BS_tasks_external(BS_ID=i)
+            self.env.BS = i
 
             while len(tasks):
-                self.test.search_tour()
+                if self.test.get_env.config['stage2_alg_choice'] == 0:
+                    self.test.search_tour()  # 贪心
+                elif self.test.get_env.config['stage2_alg_choice'] == 1:
+                    self.test.active_search()  # dp
                 score = self.test.score[0]
                 u = self.test.u[0]
                 trace = self.test.trace
@@ -94,7 +101,7 @@ class Stage_Two_Pointer:
                     # print(f"target bs {i} has no more capacity!")
                     if penalty_mode == 0:
                         self.penalty += penalty * len(tasks)
-                        self._env.clear_tasks_at_BS(i) 
+                        self._env.clear_tasks_at_BS(i)
 
                         self.log_thrown_tasks_num += len(tasks)
                         break
@@ -108,9 +115,10 @@ class Stage_Two_Pointer:
                         for t in range(self._env.config["delta_t"]):
                             c = self._env.C(i, t)
                             bs_remain += c
-                        throw_num = np.ceil((task_size-bs_remain) / (task_size/len(tasks)))
+                        throw_num = np.ceil(
+                            (task_size - bs_remain) / (task_size / len(tasks)))
                         self.penalty += penalty * throw_num
-                        self._env.clear_tasks_at_BS(i) 
+                        self._env.clear_tasks_at_BS(i)
 
                         self.log_thrown_tasks_num += throw_num
                         break
@@ -124,14 +132,14 @@ class Stage_Two_Pointer:
                         min_r = 1e6
                         target_task = -1
                         for t in range(len(tasks)):
-                            uu,cc = cal_uc(i, tasks[t], trace[0][t])
-                            r = uu-cc
+                            uu, cc = cal_uc(i, tasks[t], trace[0][t])
+                            r = uu - cc
                             if min_r > r:
                                 min_r = r
                                 target_task = t
-                        tasks.pop(target_task)    
-                    
-                    # delta_t = self._env.config['delta_t']
+                        tasks.pop(target_task)
+
+                        # delta_t = self._env.config['delta_t']
                     # left_source = 0
                     # for t in range(delta_t):
                     #     left_source += self._env.C(i, t)
@@ -155,11 +163,11 @@ class Stage_Two_Pointer:
                         alloc_list = trace[0][t]
                         if sum(alloc_list) != task.cpu_requirement():
                             print("trace 和 task 的大小不匹配！")
-                        
+
                         self.u += task.u_0
-                        
-                        uu,cc = cal_uc(i, task, alloc_list)
-                        r = uu-cc
+
+                        uu, cc = cal_uc(i, task, alloc_list)
+                        r = uu - cc
                         if r < 0:
                             tasks.remove(task)
                             # 还原 u 和 c
@@ -179,24 +187,25 @@ class Stage_Two_Pointer:
                         # a = left_source
 
                         # allocate 会删除队列中的 task
-                        self._env.allocate_task_at_BS(task=task, BS_ID=i, alloc_list=alloc_list)
+                        self._env.allocate_task_at_BS(task=task, BS_ID=i,
+                                                      alloc_list=alloc_list)
 
                         # left_source = 0
                         # for t in range(delta_t):
                         #     left_source += self._env.C(i, t)
                         # b = left_source
                         # # print(f"{a} - {b} = {task.cpu_requirement()}")
-                    
+
                     break
-                
+
                 # 只有在 penalty_mode >= 2 中，且无法完成调度的情况下，才会进行循环，直到剩下能够分配的任务序列
             else:
                 pass
-        
+
             if len(self._env.get_BS_tasks_external(BS_ID=i)):
                 print(f"External tasks didn't be handled in BS {i}.")
-                self._env.clear_tasks_at_BS(i) 
-        
+                self._env.clear_tasks_at_BS(i)
+
         cost = self.cost
         u = self.u
         penalty = self.penalty
