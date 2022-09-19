@@ -20,10 +20,12 @@ class Categorical(nn.Module):
 
 # https://github.com/higgsfield/np-hard-deep-reinforcement-learning/blob/master/Neural%20Combinatorial%20Optimization.ipynb
 class PtrNet1(nn.Module):
-	def __init__(self, cfg):
+	def __init__(self, cfg, config):
 		super().__init__()
-		self.Embedding = nn.Linear(2, cfg.embed, bias = False) #fixme: 输入维度可能就不是 2 了 
-		self.Env_Embedding = nn.Linear(cfg.slots * 2, cfg.embed, bias = False) # 刚刚好环境的维度也是 2, 但是融合了slots 和 p c 数据
+		self.Embedding = nn.Linear(2, cfg.embed, bias = False) #fixme: 输入维度可能就不是 2 了
+		self.Env_Embedding = nn.Linear(config['delta_t'] * 2, cfg.embed, bias =
+		False) #
+		# 刚刚好环境的维度也是 2, 但是融合了slots 和 p c 数据
 		self.Encoder = nn.LSTM(input_size = cfg.embed, hidden_size = cfg.hidden, batch_first = True)
 		self.Decoder = nn.LSTM(input_size = cfg.embed, hidden_size = cfg.hidden, batch_first = True)
 		if torch.cuda.is_available():
