@@ -1,7 +1,7 @@
 # Environment parameters
 
 env: BECEC
-random_seed: 2077
+random_seed: 109
 num_agents: 16
 
 load_param_while_training: True
@@ -108,7 +108,7 @@ action_mode: 1
 # mode 3: don't penalty thrown tasks, and don't execute allocation of tasks with u-c<0
 #         whether penaltying null BS depends on subsquent flag 'is_null_penalty'
 # mode 4: don't penalty thrown tasks
-penalty_mode: 4
+penalty_mode: 3
 penalty: -1000.
 is_null_penalty: False # whether the null selection should be penaltied
 

@@ -50,7 +50,7 @@ def sampler_worker(config, replay_queue, batch_queue, replay_priorities_queue, t
             replay_buffer.add(*replay)
 
         # (2) Transfer batch of replay from buffer to the batch_queue
-        if len(replay_buffer) < batch_size * 10:
+        if len(replay_buffer) < batch_size * 100:
             continue
 
         try:

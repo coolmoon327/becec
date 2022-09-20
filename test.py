@@ -14,8 +14,8 @@ if __name__ == "__main__":
     # config = read_config(args['config'])
     config = read_config('config_d4pg.yml')
     BECEC.set_config(config)
-    engine = load_engine(config)
-    engine.test()
+    # engine = load_engine(config)
+    # engine.test()
 
-    # greedy_scheduler = Greedy_Scheduler(config)
-    # greedy_scheduler.run()
+    greedy_scheduler = Greedy_Scheduler(config)
+    greedy_scheduler.run()

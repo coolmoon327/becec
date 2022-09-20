@@ -248,8 +248,9 @@ class Agent(object):
             self.logger.scalar_summary(f"agent_{self.agent_type}/episode_reward", episode_reward, step)
             self.logger.scalar_summary(f"agent_{self.agent_type}/episode_timing", time.time() - ep_start_time, step)
             if self.agent_type == "exploitation" and self.config["env"] == "BECEC":
-                self.logger.scalar_summary(f"agent_{self.agent_type}/scheduling_errors", episode_thrown_num, step)
-                self.logger.scalar_summary(f"agent_{self.agent_type}/scheduling_nulls", episode_null_num, step)
+                episode_tasks_num = len(rewards) * self.config['n_tasks']
+                self.logger.scalar_summary(f"agent_{self.agent_type}/scheduling_errors", episode_thrown_num/episode_tasks_num, step)
+                self.logger.scalar_summary(f"agent_{self.agent_type}/scheduling_nulls", episode_null_num/episode_tasks_num, step)
                 self.logger.scalar_summary(f"agent_{self.agent_type}/episode_reward_PURE", episode_reward_pure, step)
 
                 discounted_cumulative_reward = 0.

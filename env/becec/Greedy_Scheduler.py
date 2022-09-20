@@ -8,7 +8,7 @@ from utils.logger import Logger
 from .stage_two.Stage_Two_Pointer import Stage_Two_Pointer
 
 # 是否使用第二阶段算法 (若是, 则只会将任务发送给 BS, 由第二阶段执行分配)
-use_alg_2 = True
+use_alg_2 = False
 
 class Scheduler():
     def __init__(self, config):
