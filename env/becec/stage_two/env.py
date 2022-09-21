@@ -543,7 +543,7 @@ class Env_tsp():
                 real_worker[b][max_index])  # 如果出现没有可行方案怎么办？是否应该返回无法执行
             u[b] = total_utility[b][task_size - 1][max_index]
             if (-np.max(dp[b][task_size - 1]) == INF):
-                d[b] = 500
+                d[b] = 5000
                 u[b] = 0  # 如果没有可行方案, 则返回的utility为0
         trace = np.full((batch, task_size, slots_size), fill_value=0,
                         dtype=np.int)
