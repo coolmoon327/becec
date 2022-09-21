@@ -28,8 +28,8 @@ class Greedy(object):
         data = copy.deepcopy(inputs)
         data = data.numpy()
         _, task_size = tours.size()
-        task_data, env_data = np.split(data, axis=2, indices_or_sections=[
-            task_size * 2])
+        # 这里的 indices_or_sections = [2] 永远不用变， 因为只是最后一个维度， 而一个任务永远对应 22
+        task_data, env_data = np.split(data, axis=2, indices_or_sections=[2])
         # 这里的 indices_or_sections 是不是应该要变为数据的实际长度
         env_data = env_data[:, 0, :]
         '''
@@ -39,6 +39,7 @@ class Greedy(object):
         tours = tours.numpy()  # 先将输入转为numpy类型
         c_slots, p_slots = np.split(env_data, 2, axis=1)
         workload, penalty_factor = np.split(task_data, 2, axis=2)
+
         workload = np.squeeze(workload, axis=-1)  # 降解最后一个维度
         penalty_factor = np.squeeze(penalty_factor, axis=-1)
 
