@@ -72,7 +72,7 @@ class Test(object):
 
         # 为随机的任务执行顺序打分, 得到一个基准, 同时需要传入 tasks 和 envs
         baseline = self.env.seq_score(tasks, random_tours)
-        self.score = baseline[0]
+        self.score = baseline[0].cpu().numpy()
         self.u = baseline[1]
         # 这里的 trace 需要重新将任务的执行顺序 变为 0, 1, 2, 3, 4 ...
         # 维度还是需要是 (batch, task_size, slots)
