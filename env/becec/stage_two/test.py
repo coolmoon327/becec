@@ -74,7 +74,11 @@ class Test(object):
         baseline = self.env.seq_score(tasks, random_tours)
         self.score = baseline[0]
         self.u = baseline[1]
-        self.trace = baseline[2]
+        # 这里的 trace 需要重新将任务的执行顺序 变为 0, 1, 2, 3, 4 ...
+        # 维度还是需要是 (batch, task_size, slots)
+        self.trace = baseline[2][:, random_tours[:], :].reshape(batch,
+            random_tours.shape[1], (tasks_slots_info - 2) // 2)
+        temp = baseline[2]
 
         """
         # 记录成本
@@ -119,4 +123,3 @@ class Test(object):
         #     'step:%d/%d, actic loss:%1.3f' % (
         #         i, cfg.steps, act_loss.data))
         """
-
