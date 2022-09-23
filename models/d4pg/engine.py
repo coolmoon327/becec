@@ -50,7 +50,7 @@ def sampler_worker(config, replay_queue, batch_queue, replay_priorities_queue, t
             replay_buffer.add(*replay)
 
         # (2) Transfer batch of replay from buffer to the batch_queue
-        if len(replay_buffer) < batch_size * 100:
+        if len(replay_buffer) < batch_size * 10:
             continue
 
         try:
@@ -131,33 +131,24 @@ class Engine(object):
                                    global_episode, update_step, experiment_dir))
         processes.append(p)
 
-        err = False
-        if config['load_param_while_training']:
-            try:
-                target_policy_net = torch.load(f"./results/Actor_Network_Params/M_{self.config['M']}_T_{self.config['T']}_Dt_{self.config['delta_t']}_Gamma_{self.config['discount_rate']}.pt")
-                target_value_net = torch.load(f"./results/Critic_Network_Params/M_{self.config['M']}_T_{self.config['T']}_Dt_{self.config['delta_t']}_Gamma_{self.config['discount_rate']}.pt")
-            except:
-                err = True
-        if (not config['load_param_while_training']) or err:
-            # actor
-            if config['env'] == 'BECEC' and config['action_mode'] == 1:
-                target_policy_net = PolicyNetwork(config['state_dim'], config['action_dim'], config['dense_size'], device=config['device'], group_num=config['n_tasks'], discrete_action=True)
-            else:
-                target_policy_net = PolicyNetwork(config['state_dim'], config['action_dim'], config['dense_size'], device=config['device'])
-            # critic
-            target_value_net = ValueNetwork(config['state_dim'], config['action_dim'], config['dense_size'], config['v_min'], config['v_max'], config['num_atoms'], device=config['device'])
-        
-        # 因为鼓励探索, 所以 Exploration 使用的 net_cpu 并不需要 load, 而是通过软更新慢慢 update
+        # actor
         if config['env'] == 'BECEC' and config['action_mode'] == 1:
+            target_policy_net = PolicyNetwork(config['state_dim'], config['action_dim'], config['dense_size'], device=config['device'], group_num=config['n_tasks'], discrete_action=True)
+            policy_net = copy.deepcopy(target_policy_net)
             policy_net_cpu = PolicyNetwork(config['state_dim'], config['action_dim'], config['dense_size'], device=config['agent_device'], group_num=config['n_tasks'], discrete_action=True)
+            target_policy_net.share_memory()
         else:
+            target_policy_net = PolicyNetwork(config['state_dim'], config['action_dim'], config['dense_size'], device=config['device'])
+            policy_net = copy.deepcopy(target_policy_net)
             policy_net_cpu = PolicyNetwork(config['state_dim'], config['action_dim'], config['dense_size'], device=config['agent_device'])
-        # 仅在 wolp 模式下需要使用 value_net_cpu
-        value_net_cpu = ValueNetwork(config['state_dim'], config['action_dim'], config['dense_size'], config['v_min'], config['v_max'], config['num_atoms'], device=config['agent_device'])
+            target_policy_net.share_memory()
 
-        policy_net = copy.deepcopy(target_policy_net)
+        # critic
+        target_value_net = ValueNetwork(config['state_dim'], config['action_dim'], config['dense_size'], 
+                                        config['v_min'], config['v_max'], config['num_atoms'], device=config['device'])
         value_net = copy.deepcopy(target_value_net)
-        target_policy_net.share_memory()
+        value_net_cpu = ValueNetwork(config['state_dim'], config['action_dim'], config['dense_size'], 
+                                        config['v_min'], config['v_max'], config['num_atoms'], device=config['agent_device'])
         target_value_net.share_memory()
 
         # Learner (neural net training process)
@@ -200,17 +191,14 @@ class Engine(object):
         global_episode = mp.Value('i', 0)
 
         # Learner (neural net training process)
-        # target_policy_net = PolicyNetwork(config['state_dim'], config['action_dim'], config['dense_size'], device=config['device'])
-        target_value_net = ValueNetwork(config['state_dim'], config['action_dim'], config['dense_size'], config['v_min'], config['v_max'], config['num_atoms'], device=config['device'])
-         
-        target_policy_net = torch.load(f"./results/Actor_Network_Params/M_{self.config['M']}_T_{self.config['T']}_Dt_{self.config['delta_t']}_Gamma_{self.config['discount_rate']}.pt")
-        # target_value_net = torch.load(f"./results/Critic_Network_Params/M_{self.config['M']}_T_{self.config['T']}_Dt_{self.config['delta_t']}_Gamma_{self.config['discount_rate']}.pt")
-
+        target_policy_net = PolicyNetwork(config['state_dim'], config['action_dim'],
+                                          config['dense_size'], device=config['device'])
+        param_file = f"./results/Actor_Network_Params/M_{self.config['M']}_T_{self.config['T']}_Dt_{self.config['delta_t']}_Gamma_{self.config['discount_rate']}.pt"
+        target_policy_net = torch.load(param_file)
         target_policy_net.eval()
-        target_value_net.eval()
 
         # Single agent for exploitation
-        agent_worker(config, target_policy_net, target_value_net, None, global_episode, 0, "exploitation", experiment_dir,
+        agent_worker(config, target_policy_net, None, global_episode, 0, "exploitation", experiment_dir,
                                    training_on, replay_queue, update_step)
 
         print("End.")

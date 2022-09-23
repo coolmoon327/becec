@@ -5,7 +5,6 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import queue
-import os
 
 from utils.utils import OUNoise, empty_torch_queue
 from utils.logger import Logger
@@ -161,7 +160,6 @@ class LearnerD4PG(object):
 
         # Send updated learner to the queue
         if update_step.value % 100 == 0:
-            self.save(f"M_{self.config['M']}_T_{self.config['T']}_Dt_{self.config['delta_t']}_Gamma_{self.config['discount_rate']}")
             try:
                 if self.config['wolp_mode'] > 0:
                     # 使用 wolp, 则 agent 也需要 critic 网络
@@ -180,13 +178,6 @@ class LearnerD4PG(object):
         self.logger.scalar_summary("learner/policy_loss", policy_loss.item(), step)
         self.logger.scalar_summary("learner/value_loss", value_loss.item(), step)
         self.logger.scalar_summary("learner/learner_update_timing", time.time() - update_time, step)
-
-    def save(self, checkpoint_name):
-        process_dir = "./results/Critic_Network_Params"
-        if not os.path.exists(process_dir):
-            os.makedirs(process_dir)
-        model_fn = f"{process_dir}/{checkpoint_name}.pt"
-        torch.save(self.value_net, model_fn)
 
     def run(self, training_on, batch_queue, replay_priority_queue, update_step):
         torch.set_num_threads(4)
