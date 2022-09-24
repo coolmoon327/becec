@@ -1,15 +1,14 @@
 # Environment parameters
 
 env: BECEC
-random_seed: 109
-num_agents: 16
+random_seed: 2077
+num_agents: 1
 
-load_param_while_training: True
 
 # Training parameters
 
 model: d4pg
-batch_size: 512
+batch_size: 1024
 num_steps_train: 2_000_000 # number of episodes from all agents
 max_ep_length: 1000 # maximum number of steps per episode
 replay_mem_size: 5_000_000 # maximum capacity of replay memory
@@ -108,7 +107,7 @@ action_mode: 1
 # mode 3: don't penalty thrown tasks, and don't execute allocation of tasks with u-c<0
 #         whether penaltying null BS depends on subsquent flag 'is_null_penalty'
 # mode 4: don't penalty thrown tasks
-penalty_mode: 3
+penalty_mode: 4
 penalty: -1000.
 is_null_penalty: False # whether the null selection should be penaltied
 
