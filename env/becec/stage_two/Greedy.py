@@ -60,6 +60,7 @@ class Greedy(object):
         self.batch = batch
         self._slots_size = slots_size
         self._task_size = task_size
+        self.unfinished_tasks = np.full_like(tours, -1)
 
         '''
             1.sequence_key:
@@ -71,22 +72,33 @@ class Greedy(object):
                                  for _ in range(batch)])
         # 重新改为从前往后使用时隙资源就可以了
         slot_use_seq = np.array([[j for j in range(slots_size)]
-                                for i in range(batch)])
+                                 for i in range(batch)])
         final_slot = np.full((batch,), fill_value=-1)
         last_slot = np.full((batch,), fill_value=-1)
         for b in range(batch):
-            work_use = np.sum(workload[b])
-            slot_sum = 0
-            for i in range(slots_size):
-                '''
-                    c_slots 中要选 b 组
-                    后面任务的 完成顺序也要选 第 b 组
-                '''
-                slot_sum += c_slots[b][slot_use_seq[b][i]]
-                last_slot = np.maximum(last_slot, i)
-                if slot_sum >= work_use:
-                    final_slot[b] = last_slot
+            count = task_size - 1
+            while count >= 0:
+                # 默认被 -1 标记的是无法完成的任务
+                work_use = np.sum(workload[b][[tours[b][i] for i in range(
+                    len(tours[b])) if tours[b][i] != -1]])
+                slot_sum = 0
+                for i in range(slots_size):
+                    '''
+                        c_slots 中要选 b 组
+                        后面任务的 完成顺序也要选 第 b 组
+                    '''
+                    slot_sum += c_slots[b][slot_use_seq[b][i]]
+                    last_slot = np.maximum(last_slot, i)
+                    if slot_sum >= work_use:
+                        final_slot[b] = last_slot
+                        break
+                else:  # for 循环非正常退出, 可以跳出 while 语句了
                     break
+
+                # 如果无法完成任务, 那么 tours[b][count] 需要被设置为 -1
+                self.unfinished_tasks[b][task_size - 1 - count] = tours[b][count]
+                tours[b][count] = -1
+                count -= 1
         '''
             将整个问题改成 调用 batch 次 one_batch 首先看哪些地方需要修改成 batch
             变量
@@ -104,8 +116,13 @@ class Greedy(object):
         # 从前往后一直使用到哪个时隙
 
         self.trace = np.zeros([self.batch, task_size, slots_size])
-        self.u = np.zeros((batch, ))
-        self.score = np.zeros((batch, ))
+        self.u = np.zeros((batch,))
+        self.score = np.zeros((batch,))
+        # 添加一个字典记录 trace, 完成了的任务序号, 没有完成的任务序号
+        # trace: (batch, task_size, slots_size)
+        # finish_tasks: (batch, 已完成任务的编号)
+        # unfinished_tasks: (batch, 未完成任务的编号)
+        self.traceInfo = {'trace': self.trace}
 
     def one_batch(self, batch):
         """
@@ -118,6 +135,9 @@ class Greedy(object):
             u : 记录总的 u
         """
         for task in self.tours[batch]:
+            # 如果说 task 为 -1, 那么说明这个 task 排序是不需要做的
+            if task == -1:
+                continue
             # 记录每个task使用了哪些时隙资源
             task_occupation = np.zeros([self._slots_size])
             while True:
@@ -135,7 +155,8 @@ class Greedy(object):
                 '''
                 if self._workload[batch][task] < 1e-10:
                     self.score[batch] += \
-                        self._penalty_factor[batch][task] * self._slot_use_seq[batch][self._now_slot] + \
+                        self._penalty_factor[batch][task] * \
+                        self._slot_use_seq[batch][self._now_slot] + \
                         task_occupation.dot(self._p_slots[batch])
                     self.u[batch] += - self._penalty_factor[batch][task] * \
                                      self._slot_use_seq[batch][self._now_slot]
@@ -153,15 +174,20 @@ class Greedy(object):
                         2. 记录任务本时隙使用的资源
                         3. 将任务完成剩余资源设置为0
                 '''
-                if self._c_slots[batch][real_slot] < self._workload[batch][task]:
-                    self._workload[batch][task] -= self._c_slots[batch][real_slot]
-                    task_occupation[real_slot] += self._c_slots[batch][real_slot]
+                if self._c_slots[batch][real_slot] < self._workload[batch][
+                    task]:
+                    self._workload[batch][task] -= self._c_slots[batch][
+                        real_slot]
+                    task_occupation[real_slot] += self._c_slots[batch][
+                        real_slot]
                     self._c_slots[batch][real_slot] = 0
                     self._now_slot += 1
                 else:  # 当前时隙可以完成任务
-                    self._c_slots[batch][real_slot] -= self._workload[batch][task]
+                    self._c_slots[batch][real_slot] -= self._workload[batch][
+                        task]
                     task_occupation[real_slot] += self._workload[batch][task]
                     self._workload[batch][task] = 0
+            # 这里自动地按照任务的先后填充了 slots 的执行过程
             self.trace[batch][task] = task_occupation
         '''
             一个批次处理完毕,需要重新设置 self._now_slot
@@ -177,7 +203,6 @@ class Greedy(object):
         """
         self.score[batch] = 5000.
 
-
     def cal(self, batch):
         """
         任务有可行方案,计算具体的可行方案
@@ -186,9 +211,10 @@ class Greedy(object):
         :return: None
         """
         for i in range(self._final_slot[batch] + 1,
-                       len(self._slot_use_seq[batch])):
+                       len(self._slot_use_seq[batch])):  # 不会被使用到的时隙, 设置为max数据
             self._slot_use_seq[batch][i] = np.iinfo(np.int32).max
 
+        # 这里重新对 slot_use_seq 进行了排序, 保证是从小到大使用的数据
         self._slot_use_seq[batch].sort()
         self.one_batch(batch)
 
@@ -201,10 +227,11 @@ class Greedy(object):
         '''
         for b in range(self.batch):
 
-            if self._final_slot[b] == -1:  # 不能完成任务
-                # todo 返回的惩罚里面需要对 trace 修改
-                self.punish(b)  # 设定惩罚
-                continue
+            # 也就是说其实不再需要 self._final_slot 因为全部都是需要执行的
+            # if self._final_slot[b] == -1:  # 不能完成任务
+            #     # todo 返回的惩罚里面需要对 trace 修改
+            #     self.punish(b)  # 设定惩罚
+            #     continue
             '''
                 可以完成任务,先截断 slot_use_seq
                 并且 slot_use_seq 必须是从前到后的使用顺序
@@ -231,16 +258,26 @@ if __name__ == "__main__":
                              [0.0000, 0.0000],
                              [0.0000, 0.0000],
                              [0.0000, 0.0000]]]),
-              torch.tensor([[1.4635e+02, 5.1574e+01, 7.9357e+01, 1.4067e+02, 6.3253e+01, 9.3808e+01,
-                             6.7542e+01, 7.7266e+01, 1.2939e+02, 9.8069e+01, 9.8686e+01, 7.3700e+01,
-                             8.4672e+01, 1.4061e+02, 7.0344e+01, 1.4020e+02, 7.8021e+01, 5.3114e+01,
-                             5.0951e+01, 1.4496e+02, 7.7031e+01, 1.2481e+02, 9.9813e+01, 7.7184e+01,
-                             7.2463e+01, 9.2338e+01, 1.3529e+02, 5.7712e+01, 1.3760e+02, 9.6516e+01,
-                             5.4414e-01, 9.9070e-01, 6.6059e-01, 6.0580e-01, 2.0286e-01, 8.1328e-01,
-                             7.4790e-01, 1.7200e-01, 9.3386e-01, 7.5517e-01, 2.7740e-01, 8.8028e-01,
-                             2.3666e-01, 6.5084e-01, 2.8878e-01, 6.5283e-01, 2.6687e-02, 4.9296e-01,
-                             8.6338e-01, 1.2337e-01, 4.3695e-02, 3.1412e-01, 4.2735e-01, 7.2491e-01,
-                             6.7175e-01, 8.8491e-01, 6.2024e-01, 2.1663e-01, 5.6574e-01, 9.7774e-01]])]
+              torch.tensor([[1.4635e+02, 5.1574e+01, 7.9357e+01, 1.4067e+02,
+                             6.3253e+01, 9.3808e+01,
+                             6.7542e+01, 7.7266e+01, 1.2939e+02, 9.8069e+01,
+                             9.8686e+01, 7.3700e+01,
+                             8.4672e+01, 1.4061e+02, 7.0344e+01, 1.4020e+02,
+                             7.8021e+01, 5.3114e+01,
+                             5.0951e+01, 1.4496e+02, 7.7031e+01, 1.2481e+02,
+                             9.9813e+01, 7.7184e+01,
+                             7.2463e+01, 9.2338e+01, 1.3529e+02, 5.7712e+01,
+                             1.3760e+02, 9.6516e+01,
+                             5.4414e-01, 9.9070e-01, 6.6059e-01, 6.0580e-01,
+                             2.0286e-01, 8.1328e-01,
+                             7.4790e-01, 1.7200e-01, 9.3386e-01, 7.5517e-01,
+                             2.7740e-01, 8.8028e-01,
+                             2.3666e-01, 6.5084e-01, 2.8878e-01, 6.5283e-01,
+                             2.6687e-02, 4.9296e-01,
+                             8.6338e-01, 1.2337e-01, 4.3695e-02, 3.1412e-01,
+                             4.2735e-01, 7.2491e-01,
+                             6.7175e-01, 8.8491e-01, 6.2024e-01, 2.1663e-01,
+                             5.6574e-01, 9.7774e-01]])]
     tours = torch.tensor([[1, 9, 4, 0, 5, 6, 8, 7, 3, 2]], device='cuda:0')
     inputCopy = copy.deepcopy(inputs)
     greedy = Greedy(inputs, tours)
