@@ -77,7 +77,7 @@ class Test(object):
         # 这里的 trace 需要重新将任务的执行顺序 变为 0, 1, 2, 3, 4 ...
         # 维度还是需要是 (batch, task_size, slots)
         # 需要重新调整一下顺序
-        self.trace = baseline[2][:, random_tours[:], :]
+        self.trace = baseline[2][:, random_tours[0][:], :]
         self.trace = np.reshape(self.trace, (batch, random_tours.shape[1],
                                              (tasks_slots_info - 2) // 2))
         """

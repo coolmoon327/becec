@@ -202,6 +202,7 @@ class Greedy(object):
         for b in range(self.batch):
 
             if self._final_slot[b] == -1:  # 不能完成任务
+                # todo 返回的惩罚里面需要对 trace 修改
                 self.punish(b)  # 设定惩罚
                 continue
             '''
