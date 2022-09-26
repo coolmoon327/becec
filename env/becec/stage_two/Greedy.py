@@ -125,7 +125,8 @@ class Greedy(object):
         # trace: (batch, task_size, slots_size)
         # finish_tasks: (batch, 已完成任务的编号)
         # unfinished_tasks: (batch, 未完成任务的编号)
-        self.traceInfo = {'trace': self.trace}
+        self.traceInfo = {'trace': self.trace,
+                          'unfinished_tasks': self.unfinished_tasks}
 
     def one_batch(self, batch):
         """

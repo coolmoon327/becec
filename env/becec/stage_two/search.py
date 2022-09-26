@@ -36,7 +36,7 @@ def sampling(cfg, env, test_input):
                     torch.tensor(seq.res).unsqueeze(0))
     greedy.greed_score()
 
-    return greedy.score, greedy.u, greedy.trace
+    return greedy.score, greedy.u, greedy.traceInfo
 
 
 def active_search(cfg, env, test_input, log_path=None):
