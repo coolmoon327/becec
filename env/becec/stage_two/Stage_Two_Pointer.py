@@ -9,6 +9,7 @@ FilePath: /own_work/stage_two/Stage_Two_Pointer.py
 import numpy as np
 import os
 import sys
+import copy
 
 from env.becec.stage_two.config import Config, load_pkl, pkl_parser, argparser, \
     dump_pkl
@@ -83,124 +84,185 @@ class Stage_Two_Pointer:
             '''
 
             tasks = self._env.get_BS_tasks_external(BS_ID=i)
+            tasks = copy.deepcopy(tasks)    # 二阶段进行了更改, 因此不再允许 tasks 队列随着分配被删除, 需要拿到一个独立于 _env 的队列
+            tasks_num = len(tasks)
+
             self.env.BS = i
+            if self.test.get_env.config['stage2_alg_choice'] == 0:
+                self.test.search_tour()  # 贪心
+            elif self.test.get_env.config['stage2_alg_choice'] == 1:
+                self.test.active_search()  # dp
+            
+            score = self.test.score[0]
+            u = self.test.u[0]
+            trace = self.test.trace['trace']
+            tours = self.test.trace['tours']
+            error_num = self.test.trace['error_num']
 
-            while len(tasks):
-                if self.test.get_env.config['stage2_alg_choice'] == 0:
-                    self.test.search_tour()  # 贪心
-                elif self.test.get_env.config['stage2_alg_choice'] == 1:
-                    self.test.active_search()  # dp
-                score = self.test.score[0]
-                u = self.test.u[0]
-                trace = self.test.trace
-                '''
-                    score = -(u - c), u = sum(-alpha*dt), c = sum(p*w)
-                '''
+            if error_num > 0:
+                # 0 和 1 都不执行整个调度
+                if penalty_mode == 0:
+                    self.penalty += penalty * tasks_num
+                    self._env.clear_tasks_at_BS(i)
+                    self.log_thrown_tasks_num += tasks_num
+                elif penalty_mode == 1:
+                    self.penalty += penalty * error_num
+                    self._env.clear_tasks_at_BS(i)
+                    self.log_thrown_tasks_num += error_num
+                # 2 3 4 会尽可能执行调度
+                elif penalty_mode == 2:
+                    self.penalty += penalty * error_num
+                    self.log_thrown_tasks_num += error_num
+                elif penalty_mode == 3 or penalty_mode == 4:
+                    # 不对失误进行惩罚
+                    self.log_thrown_tasks_num += error_num
 
-                if score == 5000.:
-                    # print(f"target bs {i} has no more capacity!")
-                    if penalty_mode == 0:
-                        self.penalty += penalty * len(tasks)
-                        self._env.clear_tasks_at_BS(i)
+            for index in tours:
+                task = tasks[index]
+                alloc_list = trace[index]
+                if sum(alloc_list) != task.cpu_requirement():
+                    print("trace 和 task 的大小不匹配！")
+                
+                c = u + score
+                self.cost += c
+                self.u += u
+                if c == 0: print(f"Warning: cost is 0! c={c} u={u} score={score}")
 
-                        self.log_thrown_tasks_num += len(tasks)
-                        break
-                    elif penalty_mode == 1:
-                        task_size = 0.
-                        for t in range(len(tasks)):
-                            # print(i, t, len(self._env.get_BS_tasks_external(BS_ID=i)))
-                            task = tasks[t]
-                            task_size += task.cpu_requirement()
-                        bs_remain = 0.
-                        for t in range(self._env.config["delta_t"]):
-                            c = self._env.C(i, t)
-                            bs_remain += c
-                        throw_num = np.ceil(
-                            (task_size - bs_remain) / (task_size / len(tasks)))
-                        self.penalty += penalty * throw_num
-                        self._env.clear_tasks_at_BS(i)
+                self.u += task.u_0
 
-                        self.log_thrown_tasks_num += throw_num
-                        break
-                    elif penalty_mode == 2:
-                        self.penalty += penalty
-                        self.log_thrown_tasks_num += 1
-                        tasks.pop(-1)
-                    elif penalty_mode == 3 or penalty_mode == 4:
-                        # 不对失误进行惩罚, 找出并删除最差的任务
-                        self.log_thrown_tasks_num += 1
-                        min_r = 1e6
-                        target_task = -1
-                        for t in range(len(tasks)):
-                            uu, cc = cal_uc(i, tasks[t], trace[0][t])
-                            r = uu - cc
-                            if min_r > r:
-                                min_r = r
-                                target_task = t
-                        tasks.pop(target_task)
+                if penalty_mode == 3 or penalty_mode == 4:
+                    uu, cc = cal_uc(i, task, alloc_list)
+                    r = uu - cc
+                    if r < 0:
+                        tasks.remove(task)
+                        # 还原 u 和 c
+                        self.u += -uu
+                        self.cost += -cc
+                        # 如果是 3 模式, 则完全不考虑负 reward, 包括训练
+                        if penalty_mode != 3:
+                            # 将负的 reward 作为 penalty 进行训练, 方便在 pure reward 中查看手动剔除负 reward 分配的效果
+                            self.penalty += r
+                        continue # 完全不分配 u-c<0 的任务, 因为在测试中不会执行这类任务, 因此训练时不用考虑它们对环境的影响, 只用作为惩罚使用
 
-                        # delta_t = self._env.config['delta_t']
-                    # left_source = 0
-                    # for t in range(delta_t):
-                    #     left_source += self._env.C(i, t)
-                    # a = left_source
-                    # b = 0.
-                    # for t in range(len(tasks)):
-                    #     task = tasks[t]
-                    #     b += task.cpu_requirement()
-                    # # print(f"{a} < {b}")
+                    # allocate 会删除队列中的 task, 因此需要在获取 tasks 时进行 deepcopy
+                    self._env.allocate_task_at_BS(task=task, BS_ID=i, alloc_list=alloc_list)
 
-                else:
-                    c = u + score
-                    self.cost += c
-                    self.u += u
-                    if c == 0:
-                        print(f"Warning: cost is 0! c={c} u={u} score={score}")
+            # while len(tasks):
+            #     if self.test.get_env.config['stage2_alg_choice'] == 0:
+            #         self.test.search_tour()  # 贪心
+            #     elif self.test.get_env.config['stage2_alg_choice'] == 1:
+            #         self.test.active_search()  # dp
+            #     score = self.test.score[0]
+            #     u = self.test.u[0]
+            #     trace = self.test.trace
+            #     '''
+            #         score = -(u - c), u = sum(-alpha*dt), c = sum(p*w)
+            #     '''
 
-                    for t in range(len(tasks)):
-                        # print(i, t, len(self._env.get_BS_tasks_external(BS_ID=i)))
-                        task = tasks[0]  # 每次 allocate 会删除任务，所以用 0
-                        alloc_list = trace[0][t]
-                        if sum(alloc_list) != task.cpu_requirement():
-                            print("trace 和 task 的大小不匹配！")
+            #     if score == 5000.:
+            #         # print(f"target bs {i} has no more capacity!")
+            #         if penalty_mode == 0:
+            #             self.penalty += penalty * len(tasks)
+            #             self._env.clear_tasks_at_BS(i)
 
-                        self.u += task.u_0
+            #             self.log_thrown_tasks_num += len(tasks)
+            #             break
+            #         elif penalty_mode == 1:
+            #             task_size = 0.
+            #             for t in range(len(tasks)):
+            #                 # print(i, t, len(self._env.get_BS_tasks_external(BS_ID=i)))
+            #                 task = tasks[t]
+            #                 task_size += task.cpu_requirement()
+            #             bs_remain = 0.
+            #             for t in range(self._env.config["delta_t"]):
+            #                 c = self._env.C(i, t)
+            #                 bs_remain += c
+            #             throw_num = np.ceil(
+            #                 (task_size - bs_remain) / (task_size / len(tasks)))
+            #             self.penalty += penalty * throw_num
+            #             self._env.clear_tasks_at_BS(i)
 
-                        uu, cc = cal_uc(i, task, alloc_list)
-                        r = uu - cc
-                        if r < 0:
-                            tasks.remove(task)
-                            # 还原 u 和 c
-                            self.u += -uu
-                            self.cost += -cc
-                            if penalty_mode != 3:
-                                # 将负的 reward 作为 penalty 进行训练, 方便在 pure reward 中查看手动剔除负 reward 分配的效果
-                                # 如果是 3 模式, 则完全不考虑负 reward, 包括训练
-                                self.penalty += r
-                            # 完全不分配 u-c<0 的任务, 因为在测试中不会执行这类任务, 因此训练时不用考虑它们对环境的影响, 只用作为惩罚使用
-                            continue
+            #             self.log_thrown_tasks_num += throw_num
+            #             break
+            #         elif penalty_mode == 2:
+            #             self.penalty += penalty
+            #             self.log_thrown_tasks_num += 1
+            #             tasks.pop(-1)
+            #         elif penalty_mode == 3 or penalty_mode == 4:
+            #             # 不对失误进行惩罚, 找出并删除最差的任务
+            #             self.log_thrown_tasks_num += 1
+            #             min_r = 1e6
+            #             target_task = -1
+            #             for t in range(len(tasks)):
+            #                 uu, cc = cal_uc(i, tasks[t], trace[0][t])
+            #                 r = uu - cc
+            #                 if min_r > r:
+            #                     min_r = r
+            #                     target_task = t
+            #             tasks.pop(target_task)
 
-                        # delta_t = self._env.config['delta_t']
-                        # left_source = 0
-                        # for t in range(delta_t):
-                        #     left_source += self._env.C(i, t)
-                        # a = left_source
+            #             # delta_t = self._env.config['delta_t']
+            #         # left_source = 0
+            #         # for t in range(delta_t):
+            #         #     left_source += self._env.C(i, t)
+            #         # a = left_source
+            #         # b = 0.
+            #         # for t in range(len(tasks)):
+            #         #     task = tasks[t]
+            #         #     b += task.cpu_requirement()
+            #         # # print(f"{a} < {b}")
 
-                        # allocate 会删除队列中的 task
-                        self._env.allocate_task_at_BS(task=task, BS_ID=i,
-                                                      alloc_list=alloc_list)
+            #     else:
+            #         c = u + score
+            #         self.cost += c
+            #         self.u += u
+            #         if c == 0:
+            #             print(f"Warning: cost is 0! c={c} u={u} score={score}")
 
-                        # left_source = 0
-                        # for t in range(delta_t):
-                        #     left_source += self._env.C(i, t)
-                        # b = left_source
-                        # # print(f"{a} - {b} = {task.cpu_requirement()}")
+            #         for t in range(len(tasks)):
+            #             # print(i, t, len(self._env.get_BS_tasks_external(BS_ID=i)))
+            #             task = tasks[0]  # 每次 allocate 会删除任务，所以用 0
+            #             alloc_list = trace[0][t]
+            #             if sum(alloc_list) != task.cpu_requirement():
+            #                 print("trace 和 task 的大小不匹配！")
 
-                    break
+            #             self.u += task.u_0
 
-                # 只有在 penalty_mode >= 2 中，且无法完成调度的情况下，才会进行循环，直到剩下能够分配的任务序列
-            else:
-                pass
+            #             uu, cc = cal_uc(i, task, alloc_list)
+            #             r = uu - cc
+            #             if r < 0:
+            #                 tasks.remove(task)
+            #                 # 还原 u 和 c
+            #                 self.u += -uu
+            #                 self.cost += -cc
+            #                 if penalty_mode != 3:
+            #                     # 将负的 reward 作为 penalty 进行训练, 方便在 pure reward 中查看手动剔除负 reward 分配的效果
+            #                     # 如果是 3 模式, 则完全不考虑负 reward, 包括训练
+            #                     self.penalty += r
+            #                 # 完全不分配 u-c<0 的任务, 因为在测试中不会执行这类任务, 因此训练时不用考虑它们对环境的影响, 只用作为惩罚使用
+            #                 continue
+
+            #             # delta_t = self._env.config['delta_t']
+            #             # left_source = 0
+            #             # for t in range(delta_t):
+            #             #     left_source += self._env.C(i, t)
+            #             # a = left_source
+
+            #             # allocate 会删除队列中的 task
+            #             self._env.allocate_task_at_BS(task=task, BS_ID=i,
+            #                                           alloc_list=alloc_list)
+
+            #             # left_source = 0
+            #             # for t in range(delta_t):
+            #             #     left_source += self._env.C(i, t)
+            #             # b = left_source
+            #             # # print(f"{a} - {b} = {task.cpu_requirement()}")
+
+            #         break
+
+            #     # 只有在 penalty_mode >= 2 中，且无法完成调度的情况下，才会进行循环，直到剩下能够分配的任务序列
+            # else:
+            #     pass
 
             if len(self._env.get_BS_tasks_external(BS_ID=i)):
                 print(f"External tasks didn't be handled in BS {i}.")

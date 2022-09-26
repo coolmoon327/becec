@@ -115,3 +115,5 @@ use_entropy: False  # whether using BS selection entropy in the reward
 entropy_factor: 500.   # reward + entropy_factor * entropy
 
 stage2_alg_choice: 0 # 二阶段算法 0 是用贪心, 1 是用 dp
+
+test_global_greedy: False # 如果不使用 global, 则会使用第二阶段的算法

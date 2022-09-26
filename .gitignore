@@ -3,5 +3,7 @@ __pycache__/
 data/
 *.out
 *.pyc
+Pkl/
 
 !*.py
+!*.md
