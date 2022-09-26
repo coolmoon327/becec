@@ -93,11 +93,14 @@ class Greedy(object):
                         final_slot[b] = last_slot
                         break
                 else:  # for 循环非正常退出, 可以跳出 while 语句了
-                    break
+                    # 如果无法完成任务, 那么 tours[b][count] 需要被设置为 -1
+                    if final_slot[b] == -1:
+                        self.unfinished_tasks[b][task_size - 1 - count] = tours[b][count]
+                        tours[b][count] = -1
 
-                # 如果无法完成任务, 那么 tours[b][count] 需要被设置为 -1
-                self.unfinished_tasks[b][task_size - 1 - count] = tours[b][count]
-                tours[b][count] = -1
+                # 已经确定当前的 count 完成剩下的 tasks
+                if tours[b][count] != -1:
+                    break
                 count -= 1
         '''
             将整个问题改成 调用 batch 次 one_batch 首先看哪些地方需要修改成 batch
