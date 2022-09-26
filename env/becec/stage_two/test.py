@@ -49,6 +49,21 @@ class Test(object):
             sampling(self.cfg, self.env, data)
         self.score = total_cost
         self.u = total_utility
+        # trace[tours] (batch, task_seq) => (task_seq)
+        trace['tours'] = trace['tours'].reshape(-1)
+        # 统计未完成的任务数量
+        trace['error_num'] = np.count_nonzero(trace['tours'] == -1)
+        # trace['tours'] 中的 -1 全部删除掉
+        trace['tours'] = np.delete(trace['tours'],
+                                   np.where(trace['tours'] == -1))
+        # trace 的顺序和 tours 改成一致的 trace (batch, task_seq, slots)
+        trace['trace'] = trace['trace'][:, trace['tours'], :]
+        # trace 的格式改成 (task_seq, slots)
+        if len(trace['tours']) == 0: # 没有能完成的任务
+            trace['trace'] = np.array([])
+        else:
+            trace['trace'] = trace['trace'].reshape(len(trace['tours']), -1)
+
         self.trace = trace
 
     def network_train(self):
