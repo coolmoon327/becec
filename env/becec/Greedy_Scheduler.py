@@ -7,9 +7,6 @@ from utils.logger import Logger
 
 from .stage_two.Stage_Two_Pointer import Stage_Two_Pointer
 
-# 是否使用第二阶段算法 (若是, 则只会将任务发送给 BS, 由第二阶段执行分配)
-use_alg_2 = True
-
 class Scheduler():
     def __init__(self, config):
         self.config = config
@@ -29,6 +26,7 @@ class Scheduler():
         self.thrown_num = 0
 
         self.alg_2 = Stage_Two_Pointer(self._env)
+        self.alg_2.test_mode = True
 
     def seed(self, seed):
         self._env.seed(seed)
@@ -123,9 +121,9 @@ class Scheduler():
             # 1.2 分配任务
             # 分配给 BS
             self._env.schedule_task_to_BS(task=task, BS_ID=target_BS)
-            if use_alg_2:
+            if not self.config['test_global_greedy']:
                 c, u, penalty = self.alg_2.execute()
-                r = u - c + penalty
+                r = u - c
             else:
                 # 指定 slot
                 self._env.allocate_task_at_BS(task=task, BS_ID=target_BS, alloc_list=alloc_list)
@@ -157,7 +155,7 @@ class Scheduler():
         counts = 0 
         counts_max = 100
 
-        sum_ = [0, 0]
+        sum_ = np.zeros(3)
         while counts < counts_max:
             counts+=1
             episode_reward = 0.
@@ -171,9 +169,10 @@ class Scheduler():
                 reward, done = self.step()
                 episode_reward += reward
 
+            episode_time = time.time() - ep_start_time
             self.logger.scalar_summary(f"greedy/episode_reward", episode_reward, counts)
             self.logger.scalar_summary(f"greedy/thrown_tasks", self.thrown_num, counts)
-            self.logger.scalar_summary(f"greedy/episode_timing", time.time() - ep_start_time, counts)
+            self.logger.scalar_summary(f"greedy/episode_timing", episode_time, counts)
             print(f"---\nEpisode {counts}")
             BS_print = []
             for BS in range(self.config["M"]):
@@ -181,7 +180,8 @@ class Scheduler():
             
             sum_[0] += self.thrown_num
             sum_[1] += episode_reward
+            sum_[2] += episode_time
             print(f"{BS_print}\nThrown tasks: {self.thrown_num} | Pure reward: {episode_reward}")
             print("---")
         
-        print(f"Mean: Thrown tasks: {sum_[0]/counts_max} | Pure reward: {sum_[1]/counts_max}")
+        print(f"Mean: Thrown tasks: {sum_[0]/counts_max} | Pure reward: {sum_[1]/counts_max} | Episode Time: {sum_[2]/counts_max}")
