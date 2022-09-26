@@ -92,7 +92,8 @@ class Stage_Two_Pointer:
                     self.test.active_search()  # dp
                 score = self.test.score[0]
                 u = self.test.u[0]
-                trace = self.test.trace
+                # 这里可以取出 tours 取出方法是 self.test.trace['tours']
+                trace = self.test.trace['trace']
                 '''
                     score = -(u - c), u = sum(-alpha*dt), c = sum(p*w)
                 '''
