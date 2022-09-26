@@ -259,10 +259,11 @@ class Stage_Two_Pointer:
             #             # # print(f"{a} - {b} = {task.cpu_requirement()}")
 
             #         break
-
+            
             #     # 只有在 penalty_mode >= 2 中，且无法完成调度的情况下，才会进行循环，直到剩下能够分配的任务序列
             # else:
             #     pass
+
 
             if len(self._env.get_BS_tasks_external(BS_ID=i)):
                 print(f"External tasks didn't be handled in BS {i}.")
