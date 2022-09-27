@@ -49,7 +49,10 @@ class ValueNetwork(nn.Module):
         self.linear2 = nn.Linear(hidden_size, hidden_size)
         self.ln2 = nn.LayerNorm(hidden_size)
 
-        self.linear3 = nn.Linear(hidden_size, num_atoms)
+        self.linear3 = nn.Linear(hidden_size, hidden_size)
+        self.ln3 = nn.LayerNorm(hidden_size)
+
+        self.linear4 = nn.Linear(hidden_size, num_atoms)
 
         self.z_atoms = np.linspace(v_min, v_max, num_atoms)
 
@@ -64,7 +67,10 @@ class ValueNetwork(nn.Module):
         x = self.linear2(x)
         x = torch.relu(self.ln2(x))
 
-        x = torch.softmax(self.linear3(x), dim=1)
+        x = self.linear3(x)
+        x = torch.relu(self.ln3(x))
+
+        x = torch.softmax(self.linear4(x), dim=1)
         return x
 
     def get_probs(self, state, action):
@@ -92,7 +98,10 @@ class PolicyNetwork(nn.Module):
         self.linear2 = nn.Linear(hidden_size, hidden_size)
         self.ln2 = nn.LayerNorm(hidden_size)
         
-        self.linear3 = nn.Linear(hidden_size, num_actions)
+        self.linear3 = nn.Linear(hidden_size, hidden_size)
+        self.ln3 = nn.LayerNorm(hidden_size)
+
+        self.linear4 = nn.Linear(hidden_size, num_actions)
         
         self.discrete_action = discrete_action
         self.groups_num = group_num
@@ -107,9 +116,12 @@ class PolicyNetwork(nn.Module):
 
         x = self.linear2(x)
         x = torch.relu(self.ln2(x))
-        
-        # x = torch.tanh(self.linear3(x))
+
         x = self.linear3(x)
+        x = torch.relu(self.ln3(x))
+        
+        # x = torch.tanh(self.linear4(x))
+        x = self.linear4(x)
 
         if self.discrete_action:
             x = torch.chunk(x, self.groups_num, dim=-1)

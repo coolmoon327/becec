@@ -2,7 +2,7 @@
 
 env: BECEC
 random_seed: 8888
-num_agents: 16
+num_agents: 14
 
 
 # Training parameters
@@ -106,8 +106,9 @@ action_mode: 1
 # === belows are without thrown penalty ===
 # mode 3: don't penalty thrown tasks, and don't execute allocation of tasks with u-c<0
 #         whether penaltying null BS depends on subsquent flag 'is_null_penalty'
-# mode 4: don't penalty thrown tasks
-penalty_mode: 4
+# mode 4: don't penalty thrown tasks, penalize u-c<0 but don't execute it
+# mode 5: don't penalty thrown tasks
+penalty_mode: 5
 penalty: -1000.
 is_null_penalty: False # whether the null selection should be penaltied
 
@@ -116,4 +117,4 @@ entropy_factor: 500.   # reward + entropy_factor * entropy
 
 stage2_alg_choice: 0 # 二阶段算法 0 是用贪心, 1 是用 dp
 
-test_global_greedy: True # 如果不使用 global, 则会使用第二阶段的算法
+test_global_greedy: False # 如果不使用 global, 则会使用第二阶段的算法
