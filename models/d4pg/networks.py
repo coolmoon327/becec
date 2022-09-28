@@ -43,16 +43,14 @@ class ValueNetwork(nn.Module):
         """
         super(ValueNetwork, self).__init__()
 
-        self.linear1 = nn.Linear(num_states + num_actions, hidden_size)
-        self.ln1 = nn.LayerNorm(hidden_size)
+        self.linear_in = nn.Linear(num_states + num_actions, hidden_size)
+        self.ln_in = nn.LayerNorm(hidden_size)
 
-        self.linear2 = nn.Linear(hidden_size, hidden_size)
-        self.ln2 = nn.LayerNorm(hidden_size)
+        self.hidden_layer_num = 4
+        self.hidden_linears = [nn.Linear(hidden_size, hidden_size).to(device) for _ in range(self.hidden_layer_num)]
+        self.lns = [nn.LayerNorm(hidden_size).to(device) for _ in range(self.hidden_layer_num)]
 
-        self.linear3 = nn.Linear(hidden_size, hidden_size)
-        self.ln3 = nn.LayerNorm(hidden_size)
-
-        self.linear4 = nn.Linear(hidden_size, num_atoms)
+        self.linear_out = nn.Linear(hidden_size, num_atoms)
 
         self.z_atoms = np.linspace(v_min, v_max, num_atoms)
 
@@ -61,16 +59,14 @@ class ValueNetwork(nn.Module):
     def forward(self, state, action):
         x = torch.cat([state, action], 1)
 
-        x = self.linear1(x)
-        x = torch.relu(self.ln1(x))
+        x = self.linear_in(x)
+        x = torch.relu(self.ln_in(x))
 
-        x = self.linear2(x)
-        x = torch.relu(self.ln2(x))
+        for i in range(self.hidden_layer_num):
+            x = self.hidden_linears[i](x)
+            x = torch.relu(self.lns[i](x))
 
-        x = self.linear3(x)
-        x = torch.relu(self.ln3(x))
-
-        x = torch.softmax(self.linear4(x), dim=1)
+        x = torch.softmax(self.linear_out(x), dim=1)
         return x
 
     def get_probs(self, state, action):
@@ -92,16 +88,14 @@ class PolicyNetwork(nn.Module):
         super(PolicyNetwork, self).__init__()
         self.device = device
 
-        self.linear1 = nn.Linear(num_states, hidden_size)
-        self.ln1 = nn.LayerNorm(hidden_size)
+        self.linear_in = nn.Linear(num_states, hidden_size)
+        self.ln_in = nn.LayerNorm(hidden_size)
 
-        self.linear2 = nn.Linear(hidden_size, hidden_size)
-        self.ln2 = nn.LayerNorm(hidden_size)
-        
-        self.linear3 = nn.Linear(hidden_size, hidden_size)
-        self.ln3 = nn.LayerNorm(hidden_size)
+        self.hidden_layer_num = 4
+        self.hidden_linears = [nn.Linear(hidden_size, hidden_size).to(device) for _ in range(self.hidden_layer_num)]
+        self.lns = [nn.LayerNorm(hidden_size).to(device) for _ in range(self.hidden_layer_num)]
 
-        self.linear4 = nn.Linear(hidden_size, num_actions)
+        self.linear_out = nn.Linear(hidden_size, num_actions)
         
         self.discrete_action = discrete_action
         self.groups_num = group_num
@@ -111,17 +105,14 @@ class PolicyNetwork(nn.Module):
         self.to(device)
 
     def forward(self, state):
-        x = self.linear1(state)
-        x = torch.relu(self.ln1(x))
+        x = self.linear_in(state)
+        x = torch.relu(self.ln_in(x))
 
-        x = self.linear2(x)
-        x = torch.relu(self.ln2(x))
-
-        x = self.linear3(x)
-        x = torch.relu(self.ln3(x))
+        for i in range(self.hidden_layer_num):
+            x = self.hidden_linears[i](x)
+            x = torch.relu(self.lns[i](x))
         
-        # x = torch.tanh(self.linear4(x))
-        x = self.linear4(x)
+        x = self.linear_out(x)
 
         if self.discrete_action:
             x = torch.chunk(x, self.groups_num, dim=-1)

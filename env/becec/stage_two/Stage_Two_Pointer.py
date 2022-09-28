@@ -135,7 +135,7 @@ class Stage_Two_Pointer:
 
                 self.u += task.u_0
 
-                if (penalty_mode == 3 or penalty_mode == 4) and not self.test_mode:
+                if ((penalty_mode == 3 or penalty_mode == 4) and not self.test_mode) or self._env.config['force_ignore_bad_tasks']:
                     uu, cc = cal_uc(i, task, alloc_list)
                     r = uu - cc
                     if r < 0:

@@ -1,8 +1,8 @@
 # Environment parameters
 
 env: BECEC
-random_seed: 8888
-num_agents: 14
+random_seed: 88
+num_agents: 6
 
 load_param_while_training: True
 
@@ -24,7 +24,7 @@ batch_queue_size: 64 # queue with batches given to learner
 replay_memory_prioritized: 1
 num_episode_save: 100
 device: cuda:0
-agent_device: cuda:1
+agent_device: cuda:0
 save_buffer_on_disk: 0
 save_reward_threshold: 1 # difference in best reward to save agent model
 
@@ -32,7 +32,7 @@ save_reward_threshold: 1 # difference in best reward to save agent model
 
 critic_learning_rate: 0.0005
 actor_learning_rate: 0.0001
-dense_size: 4000 # size of the 2 hidden layers in networks
+dense_size: 2000 # size of the 2 hidden layers in networks
 num_atoms: 11 # number of atoms in output layer of distributed critic
 v_min: -500. # lower bound of critic value output distribution (depending on reward and discount_rate)
 v_max: 4000. # upper bound of critic value output distribution
@@ -95,7 +95,7 @@ frame_mode: 1
 # mode 0: observation = BS Info (delta_t slots of C & p) + Task Info (w, alpha, u_0)
 # mode 1: observation = BS Info (delta_t slots of C) cast to 2 dimensions + Task Info (w, alpha, u_0)
 # mode 2: observation = BS Info (delta_t slots of C) + Task Info (w, alpha, u_0)
-state_mode: 1
+state_mode: 2
 # action
 # plan 0: action = target BS numbers -- for each task, output [-1, 1] and quantify to  M+1 number (M BSs + 1 null)
 # plan 1: action = one-hot -- for each task, output (M+1)*[0, 1] as a group (softmax), indicates the one-hot rate of BSs
@@ -112,10 +112,11 @@ action_mode: 1
 penalty_mode: 5
 penalty: -1000.
 is_null_penalty: False # whether the null selection should be penaltied
+force_ignore_bad_tasks: True  # 强制不执行 u-c<0 的任务, 只能在测试中使用, 否则会与 penalty_mode 冲突
 
 use_entropy: False  # whether using BS selection entropy in the reward
 entropy_factor: 500.   # reward + entropy_factor * entropy
 
 stage2_alg_choice: 0 # 二阶段算法 0 是用贪心, 1 是用 dp
 
-test_global_greedy: False # 如果不使用 global, 则会使用第二阶段的算法
+test_with_stage2: False # 是否在 Test_Scheduler 中使用第二阶段的算法
