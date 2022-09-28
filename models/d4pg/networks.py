@@ -1,3 +1,4 @@
+from turtle import forward
 import numpy as np
 import torch
 import torch.nn as nn
@@ -30,7 +31,7 @@ class ValueNetwork(nn.Module):
     """Critic - return Q value from given states and actions. """
 
     def __init__(self, num_states, num_actions, hidden_size, v_min, v_max,
-                 num_atoms, device='cuda'):
+                 num_atoms, hidden_layer_num=2, device='cuda'):
         """
         Args:
             num_states (int): state dimension
@@ -46,9 +47,9 @@ class ValueNetwork(nn.Module):
         self.linear_in = nn.Linear(num_states + num_actions, hidden_size)
         self.ln_in = nn.LayerNorm(hidden_size)
 
-        self.hidden_layer_num = 4
-        self.hidden_linears = [nn.Linear(hidden_size, hidden_size).to(device) for _ in range(self.hidden_layer_num)]
-        self.lns = [nn.LayerNorm(hidden_size).to(device) for _ in range(self.hidden_layer_num)]
+        self.hidden_layer_num = hidden_layer_num
+        self.hidden_linears = [nn.Linear(hidden_size, hidden_size) for _ in range(self.hidden_layer_num)]
+        self.lns = [nn.LayerNorm(hidden_size) for _ in range(self.hidden_layer_num)]
 
         self.linear_out = nn.Linear(hidden_size, num_atoms)
 
@@ -69,6 +70,14 @@ class ValueNetwork(nn.Module):
         x = torch.softmax(self.linear_out(x), dim=1)
         return x
 
+    def to(self, device):
+        super(PolicyNetwork, self).to(device)
+        for layer in self.hidden_linears:
+            layer.to(device)
+        for layer in self.lns:
+            layer.to(device)
+        self.device = device
+
     def get_probs(self, state, action):
         return self.forward(state, action)
 
@@ -76,7 +85,7 @@ class ValueNetwork(nn.Module):
 class PolicyNetwork(nn.Module):
     """Actor - return action value given states. """
 
-    def __init__(self, num_states, num_actions, hidden_size, device='cuda', group_num=1, discrete_action=False):
+    def __init__(self, num_states, num_actions, hidden_size, hidden_layer_num=2, device='cuda', group_num=1, discrete_action=False):
         """
         Args:
             num_states (int): state dimension
@@ -91,9 +100,9 @@ class PolicyNetwork(nn.Module):
         self.linear_in = nn.Linear(num_states, hidden_size)
         self.ln_in = nn.LayerNorm(hidden_size)
 
-        self.hidden_layer_num = 4
-        self.hidden_linears = [nn.Linear(hidden_size, hidden_size).to(device) for _ in range(self.hidden_layer_num)]
-        self.lns = [nn.LayerNorm(hidden_size).to(device) for _ in range(self.hidden_layer_num)]
+        self.hidden_layer_num = hidden_layer_num
+        self.hidden_linears = [nn.Linear(hidden_size, hidden_size) for _ in range(self.hidden_layer_num)]
+        self.lns = [nn.LayerNorm(hidden_size) for _ in range(self.hidden_layer_num)]
 
         self.linear_out = nn.Linear(hidden_size, num_actions)
         
@@ -125,6 +134,10 @@ class PolicyNetwork(nn.Module):
 
     def to(self, device):
         super(PolicyNetwork, self).to(device)
+        for layer in self.hidden_linears:
+            layer.to(device)
+        for layer in self.lns:
+            layer.to(device)
         self.device = device
 
     def get_action(self, state):
@@ -132,3 +145,50 @@ class PolicyNetwork(nn.Module):
         state = torch.from_numpy(state).float().unsqueeze(0).to(self.device)
         action = self.forward(state)
         return action
+
+
+class AutoEncoderNetwork(nn.Module):
+    def __init__(self, num_input, num_output, hidden_size, hidden_layer_num=2, device='cuda'):
+        super(AutoEncoderNetwork, self).__init__()
+        # output 指的是 encoder 编码后的输出
+        self.hidden_layer_num = hidden_layer_num
+        self.device = device
+
+        # Encoder
+        self.encoder_in = nn.Linear(num_input, hidden_size)
+        self.encoder_hiddens = [nn.Linear(hidden_size, hidden_size) for _ in range(self.hidden_layer_num)]
+        self.encoder_out = nn.Linear(hidden_size, num_output)
+
+        # Decoder
+        self.decoder_in = nn.Linear(num_output, hidden_size)
+        self.decoder_hiddens = [nn.Linear(hidden_size, hidden_size) for _ in range(self.hidden_layer_num)]
+        self.decoder_out = nn.Linear(hidden_size, num_input)
+
+        self.to(device)
+    
+    def forward(self, x):
+        x = self.encode(x)
+        x = self.decode(x)
+        return x
+
+    def encode(self, x):
+        x = torch.relu(self.encoder_in(x))
+        for i in range(self.hidden_layer_num):
+            x = torch.relu(self.encoder_hiddens[i](x))
+        x = torch.relu(self.encoder_out(x))
+        return x
+    
+    def decode(self, x):
+        x = torch.relu(self.decoder_in(x))
+        for i in range(self.hidden_layer_num):
+            x = torch.relu(self.decoder_hiddens[i](x))
+        x = torch.relu(self.decoder_out(x))
+        return x
+
+    def to(self, device):
+        super(PolicyNetwork, self).to(device)
+        for layer in self.encoder_hiddens:
+            layer.to(device)
+        for layer in self.decoder_hiddens:
+            layer.to(device)
+        self.device = device

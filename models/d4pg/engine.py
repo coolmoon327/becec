@@ -141,19 +141,19 @@ class Engine(object):
         if (not config['load_param_while_training']) or err:
             # actor
             if config['env'] == 'BECEC' and config['action_mode'] == 1:
-                target_policy_net = PolicyNetwork(config['state_dim'], config['action_dim'], config['dense_size'], device=config['device'], group_num=config['n_tasks'], discrete_action=True)
+                target_policy_net = PolicyNetwork(config['state_dim'], config['action_dim'], config['dense_size'], hidden_layer_num=['hidden_layer_num'], device=config['device'], group_num=config['n_tasks'], discrete_action=True)
             else:
-                target_policy_net = PolicyNetwork(config['state_dim'], config['action_dim'], config['dense_size'], device=config['device'])
+                target_policy_net = PolicyNetwork(config['state_dim'], config['action_dim'], config['dense_size'], hidden_layer_num=['hidden_layer_num'], device=config['device'])
             # critic
-            target_value_net = ValueNetwork(config['state_dim'], config['action_dim'], config['dense_size'], config['v_min'], config['v_max'], config['num_atoms'], device=config['device'])
+            target_value_net = ValueNetwork(config['state_dim'], config['action_dim'], config['dense_size'], config['v_min'], config['v_max'], config['num_atoms'], hidden_layer_num=['hidden_layer_num'], device=config['device'])
         
         # 因为鼓励探索, 所以 Exploration 使用的 net_cpu 并不需要 load, 而是通过软更新慢慢 update
         if config['env'] == 'BECEC' and config['action_mode'] == 1:
-            policy_net_cpu = PolicyNetwork(config['state_dim'], config['action_dim'], config['dense_size'], device=config['agent_device'], group_num=config['n_tasks'], discrete_action=True)
+            policy_net_cpu = PolicyNetwork(config['state_dim'], config['action_dim'], config['dense_size'], hidden_layer_num=['hidden_layer_num'], device=config['agent_device'], group_num=config['n_tasks'], discrete_action=True)
         else:
-            policy_net_cpu = PolicyNetwork(config['state_dim'], config['action_dim'], config['dense_size'], device=config['agent_device'])
+            policy_net_cpu = PolicyNetwork(config['state_dim'], config['action_dim'], config['dense_size'], hidden_layer_num=['hidden_layer_num'], device=config['agent_device'])
         # 仅在 wolp 模式下需要使用 value_net_cpu
-        value_net_cpu = ValueNetwork(config['state_dim'], config['action_dim'], config['dense_size'], config['v_min'], config['v_max'], config['num_atoms'], device=config['agent_device'])
+        value_net_cpu = ValueNetwork(config['state_dim'], config['action_dim'], config['dense_size'], config['v_min'], config['v_max'], config['num_atoms'], hidden_layer_num=['hidden_layer_num'], device=config['agent_device'])
 
         policy_net = copy.deepcopy(target_policy_net)
         value_net = copy.deepcopy(target_value_net)
@@ -200,11 +200,11 @@ class Engine(object):
         global_episode = mp.Value('i', 0)
 
         # Learner (neural net training process)
-        # target_policy_net = PolicyNetwork(config['state_dim'], config['action_dim'], config['dense_size'], device=config['device'])
-        target_value_net = ValueNetwork(config['state_dim'], config['action_dim'], config['dense_size'], config['v_min'], config['v_max'], config['num_atoms'], device=config['device'])
+        # target_policy_net = PolicyNetwork(config['state_dim'], config['action_dim'], config['dense_size'], hidden_layer_num=['hidden_layer_num'], device=config['device'])
+        # target_value_net = ValueNetwork(config['state_dim'], config['action_dim'], config['dense_size'], config['v_min'], config['v_max'], config['num_atoms'], hidden_layer_num=['hidden_layer_num'], device=config['device'])
          
         target_policy_net = torch.load(f"./results/Actor_Network_Params/M_{self.config['M']}_T_{self.config['T']}_Dt_{self.config['delta_t']}_Gamma_{self.config['discount_rate']}.pt")
-        # target_value_net = torch.load(f"./results/Critic_Network_Params/M_{self.config['M']}_T_{self.config['T']}_Dt_{self.config['delta_t']}_Gamma_{self.config['discount_rate']}.pt")
+        target_value_net = torch.load(f"./results/Critic_Network_Params/M_{self.config['M']}_T_{self.config['T']}_Dt_{self.config['delta_t']}_Gamma_{self.config['discount_rate']}.pt")
 
         target_policy_net.eval()
         target_value_net.eval()

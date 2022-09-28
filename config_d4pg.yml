@@ -32,7 +32,8 @@ save_reward_threshold: 1 # difference in best reward to save agent model
 
 critic_learning_rate: 0.0005
 actor_learning_rate: 0.0001
-dense_size: 2000 # size of the 2 hidden layers in networks
+dense_size: 2000 # size of the hidden layers in networks
+hidden_layer_num: 4 # number of the hidden layers in networks
 num_atoms: 11 # number of atoms in output layer of distributed critic
 v_min: -500. # lower bound of critic value output distribution (depending on reward and discount_rate)
 v_max: 4000. # upper bound of critic value output distribution
