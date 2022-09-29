@@ -62,7 +62,6 @@ class Stage_Two_Pointer:
         self.cost = 0.
         self.u = 0.
         self.penalty = 0.
-
         self.log_thrown_tasks_num = 0
 
         penalty = self._env.config['penalty']
@@ -145,6 +144,7 @@ class Stage_Two_Pointer:
                         if penalty_mode == 4:
                             # 将负的 reward 作为 penalty 进行训练, 方便在 pure reward 中查看手动剔除负 reward 分配的效果
                             self.penalty += r
+                        self.log_thrown_tasks_num += 1
                         continue # 完全不分配 u-c<0 的任务, 因为在测试中不会执行这类任务, 因此训练时不用考虑它们对环境的影响, 只用作为惩罚使用
 
                 # allocate 会删除队列中的 task, 因此需要在获取 tasks 时进行 deepcopy

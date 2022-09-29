@@ -12,10 +12,12 @@ if __name__ == "__main__":
     # args = vars(parser.parse_args())
     # config = read_config(args['config'])
     config = read_config('config_d4pg.yml')
-    # if config['penalty_mode'] == 3 and config['is_null_penalty'] == False:
-    #     # There is no negative penalty at all, and the lower bound on D4PG reward should be reset to 0
-    #     config['v_min'] = 0
 
     BECEC.set_config(config)
     engine = load_engine(config)
-    engine.train()
+    engine.train(1)
+    """
+        mode 0: train both
+        mode 1: only train encoder
+        mode 2: only train rl
+    """

@@ -14,6 +14,7 @@ class Scheduler():
         # 0 - greedy
         # 1 - fully random
         # 2 - partial random
+        # 10 - obtain auto-encoder trainning data
         self.mode = mode
         self.config = config
         self._env = Environment(config=config)
@@ -31,8 +32,9 @@ class Scheduler():
         self.target_BS = []
         self.thrown_num = 0
 
+        self.bs_observation_buffer = []
+
         self.alg_2 = Stage_Two_Pointer(self._env)
-    
 
     def seed(self, seed):
         self._env.seed(seed)
@@ -40,9 +42,22 @@ class Scheduler():
     def close(self):
         self.reset()
 
+    def get_observation(self, bs):
+        delta_t = self.config['delta_t']
+        state = [0. for _ in range(delta_t)]
+        for t in range(delta_t):
+            state[t] = self._env.C(bs, t) / 1e3
+        return state
+
     def go_next_frame(self):
         while True:
             self._env.next()
+
+            if self.mode == 10:
+                # 每一步都记录一下 BS observation
+                for bs in range(self.config['M']):
+                    self.bs_observation_buffer.append(self.get_observation(bs))
+
             if self._env.is_end_of_frame():
                 break
 
@@ -99,13 +114,14 @@ class Scheduler():
         target_BS = -1
         alloc_list = [0 for _ in range(delta_t)]
         for BS in range(M):
-            for t in range(delta_t):
-                temp_list, r = self.find_allocation(task, BS, t)
-                # temp_list, r = find_allocation_only_at_t(task, BS, t)
-                if r > max_r:
-                    max_r = r
-                    target_BS = BS
-                    alloc_list = temp_list
+            if self._env.is_resource_enough_in_BS(task, BS):
+                for t in range(delta_t):
+                    temp_list, r = self.find_allocation(task, BS, t)
+                    # temp_list, r = find_allocation_only_at_t(task, BS, t)
+                    if r > max_r:
+                        max_r = r
+                        target_BS = BS
+                        alloc_list = temp_list
 
         return max_r, target_BS, alloc_list
 
@@ -115,7 +131,7 @@ class Scheduler():
         BS = np.random.randint(0, M)
         t = np.random.randint(0, delta_t)
         
-        # 纯碎机
+        # 纯随机
         alloc_list, r = self.find_allocation(task, BS, t)
         if r == -1e6:
             BS = -1
@@ -141,35 +157,56 @@ class Scheduler():
     def step(self):
         reward = 0.
 
-        # 1. 枚举当前 frame 中的任务
-        for task in self._env.task_set:
-            # 1.1 寻找 task 最佳的 BS 与 Slot
+        def search(task):
             if self.mode == 0:
                 r, target_BS, alloc_list = self.greedy_search(task)
-            elif self.mode == 1:
+            elif self.mode == 1 or self.mode == 10:
                 r, target_BS, alloc_list = self.random_search(task)
             elif self.mode == 2:
                 r, target_BS, alloc_list = self.partial_random_search(task)
             else:
                 raise ValueError(f"Invalid parameter mode={self.mode}")
+            return r, target_BS, alloc_list
 
-            if target_BS == -1:
-                # 无法分配
-                self.thrown_num += 1
-                continue
+        # 1. 枚举当前 frame 中的任务
+        if not self.config['test_with_stage2'] and self.mode!=10:
+            # A 使用全局 test 算法
+            for task in self._env.task_set:
+                # 1.1 寻找可执行 task 的 BS 与 Slot
+                r, target_BS, alloc_list = search(task)
+                if target_BS == -1:
+                    # 无法分配
+                    self.thrown_num += 1
+                    continue
 
-            # 1.2 分配任务
-            # 分配给 BS
-            self._env.schedule_task_to_BS(task=task, BS_ID=target_BS)
-            if self.config['test_with_stage2']:
-                c, u, penalty = self.alg_2.execute()
-                r = u - c
-            else:
+                # 1.2 分配任务
+                # 分配给 BS
+                self._env.schedule_task_to_BS(task=task, BS_ID=target_BS)
+                self.target_BS.append(target_BS)
                 # 指定 slot
                 self._env.allocate_task_at_BS(task=task, BS_ID=target_BS, alloc_list=alloc_list)
-            reward += r
+                reward += r
 
-            self.target_BS.append(target_BS)
+        else:
+            # B 使用全局 test 算法找 BS, 使用二阶段算法分配 slots
+            for task in self._env.task_set:
+                # 1.1 寻找可执行 task 的 BS 与 Slot
+                r, target_BS, alloc_list = search(task)
+                if target_BS == -1:
+                    # 无法分配
+                    self.thrown_num += 1
+                    continue
+                # 分配给 BS
+                self._env.schedule_task_to_BS(task=task, BS_ID=target_BS)
+                self.target_BS.append(target_BS)
+
+                # 这一部分如果在 for 之外执行, 就是和 RL 类似的分配方式, 但是会导致第一阶段的 greedy 失效
+                # 具体原因是, global greedy 不会考虑缓存区里暂未分配的任务, 因此性能会降低很多
+                # 1.2 分配任务
+                c, u, penalty = self.alg_2.execute()
+                r = u - c
+                self.thrown_num += self.alg_2.get_thrown_tasks_num()
+                reward += r
 
         # 2. 环境更新到下一个 frame
         # 采用 Observation.py 一样的 frame
@@ -184,9 +221,20 @@ class Scheduler():
         done = (self._env.timer > self.config['T']-1)
         return reward, done
 
+    def save(self, checkpoint_name):
+        import os
+        process_dir = "./results/Auto_Encoder"
+        if not os.path.exists(process_dir):
+            os.makedirs(process_dir)
+        filename = f"{process_dir}/{checkpoint_name}.npy"
+        np.save(filename, np.array(self.bs_observation_buffer))
+
     def run(self):
         counts = 0 
-        counts_max = 100
+        if self.mode == 10:
+            counts_max = self.config['ae_pretrain_episodes_count']
+        else:
+            counts_max = self.config['test_episodes_count']
 
         sum_ = np.zeros(3)
         while counts < counts_max:
@@ -201,6 +249,12 @@ class Scheduler():
             while not done:
                 reward, done = self.step()
                 episode_reward += reward
+
+            if self.mode == 10:
+                # mode 10 不记录 log
+                if counts%100==0:
+                    print(f"Episode {counts}, got exp buffer with size {len(self.bs_observation_buffer)}")
+                continue
 
             episode_time = time.time() - ep_start_time
             self.logger.scalar_summary(f"greedy/episode_reward", episode_reward, counts)
@@ -217,4 +271,8 @@ class Scheduler():
             print(f"{BS_print}\nThrown tasks: {self.thrown_num} | Pure reward: {episode_reward}")
             print("---")
         
-        print(f"Mean: Thrown tasks: {sum_[0]/counts_max} | Pure reward: {sum_[1]/counts_max} | Episode Time: {sum_[2]/counts_max}")
+        if self.mode != 10:
+            print(f"Mean: Thrown tasks: {sum_[0]/counts_max} | Pure reward: {sum_[1]/counts_max} | Episode Time: {sum_[2]/counts_max}")
+        else:
+            self.save(f"database_dt_{self.config['delta_t']}")
+            print("Finish observation data gaining.")

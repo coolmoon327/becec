@@ -76,7 +76,7 @@ class Agent(object):
 
         # Only used in testing mode, meaning the total number of episodes
         counts = 0 
-        counts_max = 100
+        counts_max = self.config['test_episodes_count']
 
         while training_on.value and counts < counts_max:
             if training_on.value == 2:
@@ -179,7 +179,8 @@ class Agent(object):
                         episode_bs_selected_times[bs] += 1
                     
                     if num_steps % 500 == 1:
-                        print(f"---\nStep {update_step.value} Episode {self.local_episode} Exploitation:\n action={action}")
+                        # print(f"---\nStep {update_step.value} Episode {self.local_episode} Exploitation:\n action={action}")
+                        print(f"---\nStep {update_step.value} Episode {self.local_episode}")
                         print(f"Actor outputs: {details[0]} \n Target BS: {details[1]} \n Thrown tasks: {details[2]} | Null BSs: {details[3]} | Reward: {int(details[4]*100)/100} | Pure reward: {int(details[5]*100)/100}")
                         # if self.config['is_log_max_min_Q']:
                         #     # print(f"Global min reward: {self.config['log_min']}, global max reward: {self.config['log_max']}. Recommended v_min = {self.config['log_min']*(1+self.config['discount_rate'])}, v_max = {self.config['log_max']*(1+self.config['discount_rate'])}.")

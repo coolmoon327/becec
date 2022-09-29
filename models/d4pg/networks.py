@@ -71,7 +71,7 @@ class ValueNetwork(nn.Module):
         return x
 
     def to(self, device):
-        super(PolicyNetwork, self).to(device)
+        super(ValueNetwork, self).to(device)
         for layer in self.hidden_linears:
             layer.to(device)
         for layer in self.lns:
@@ -186,7 +186,7 @@ class AutoEncoderNetwork(nn.Module):
         return x
 
     def to(self, device):
-        super(PolicyNetwork, self).to(device)
+        super(AutoEncoderNetwork, self).to(device)
         for layer in self.encoder_hiddens:
             layer.to(device)
         for layer in self.decoder_hiddens:
