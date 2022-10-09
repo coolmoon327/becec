@@ -124,8 +124,8 @@ class Stage_Two_Pointer:
             c = u + score
             self.cost += c
             self.u += u
-            if c == 0: 
-                print(f"Warning: cost is 0! c={c} u={u} score={score}")
+            # if c == 0:
+            #     print(f"Warning: cost is 0! c={c} u={u} score={score}")
 
             for index in range(len(tours)):
                 tid = tours[index]

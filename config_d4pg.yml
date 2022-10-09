@@ -2,7 +2,7 @@
 
 env: BECEC
 random_seed: 8888
-num_agents: 16
+num_agents: 1
 
 
 # Training parameters
