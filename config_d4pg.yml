@@ -1,14 +1,15 @@
 # Environment parameters
 
 env: BECEC
-random_seed: 8888
-num_agents: 1
+random_seed: 88
+num_agents: 6
 
+load_param_while_training: True
 
 # Training parameters
 
 model: d4pg
-batch_size: 1024
+batch_size: 512
 num_steps_train: 2_000_000 # number of episodes from all agents
 max_ep_length: 1000 # maximum number of steps per episode
 replay_mem_size: 5_000_000 # maximum capacity of replay memory
@@ -23,7 +24,7 @@ batch_queue_size: 64 # queue with batches given to learner
 replay_memory_prioritized: 1
 num_episode_save: 100
 device: cuda:0
-agent_device: cuda:1
+agent_device: cuda:0
 save_buffer_on_disk: 0
 save_reward_threshold: 1 # difference in best reward to save agent model
 
@@ -31,10 +32,11 @@ save_reward_threshold: 1 # difference in best reward to save agent model
 
 critic_learning_rate: 0.0005
 actor_learning_rate: 0.0001
-dense_size: 4000 # size of the 2 hidden layers in networks
+dense_size: 2000 # size of the hidden layers in networks
+hidden_layer_num: 3 # number of the hidden layers in networks
 num_atoms: 11 # number of atoms in output layer of distributed critic
-v_min: -500. # lower bound of critic value output distribution (depending on reward and discount_rate)
-v_max: 4000. # upper bound of critic value output distribution
+v_min: -1000. # lower bound of critic value output distribution (depending on reward and discount_rate)
+v_max: 6000. # upper bound of critic value output distribution
 tau: 0.005 # parameter for soft target network updates
 
 is_log_max_min_Q: True  # help to log v_min and v_max through the training process
@@ -81,24 +83,38 @@ shuffle_bs: 0
 sort_tasks: True
 
 M: 10 # number of BSs
-delta_t: 10 # number of future slots the algorithm use to allocate at once
+delta_t: 30 # number of future slots the algorithm use to allocate at once
 T: 200 # number of time slots
 # frame: 10 # the length of a frame (warning: was discarded)
 n_tasks: 5 # number of tasks in a group
+
 # frame_mode
 # mode 0: set a solid frame length
 #         can be used in D4PG only when n_tasks is big enough! (Lax implementation)
 # mode 1: when number of tasks in cache reaches n_tasks, generate a new frame
 frame_mode: 1
+
 # state
 # mode 0: observation = BS Info (delta_t slots of C & p) + Task Info (w, alpha, u_0)
 # mode 1: observation = BS Info (delta_t slots of C) cast to 2 dimensions + Task Info (w, alpha, u_0)
 # mode 2: observation = BS Info (delta_t slots of C) + Task Info (w, alpha, u_0)
-state_mode: 1
+# mode 3: Auto-Encoder, observation = BS Info (delta_t slots of C) + Task Info (w, alpha, u_0)
+state_mode: 3
+# Auto-Encoder (only used in state_mode 3)
+ae_learning_rate: 0.0005
+ae_batch_size: 512
+ae_epoch: 1000
+ae_dense_size: 256
+ae_output_size: 10
+ae_hidden_layer_num: 3
+ae_always_train: True # continue to train AE while training RL
+ae_pretrain_episodes_count: 1000
+
 # action
 # plan 0: action = target BS numbers -- for each task, output [-1, 1] and quantify to  M+1 number (M BSs + 1 null)
 # plan 1: action = one-hot -- for each task, output (M+1)*[0, 1] as a group (softmax), indicates the one-hot rate of BSs
 action_mode: 1
+
 # penalty
 # mode 0: throw all external_tasks in the busy BS, utinity += penalty*len(external_tasks)
 # mode 1: throw all external_tasks in the busy BS, utinity += penalty*len(exceeded_external_tasks)
@@ -106,14 +122,18 @@ action_mode: 1
 # === belows are without thrown penalty ===
 # mode 3: don't penalty thrown tasks, and don't execute allocation of tasks with u-c<0
 #         whether penaltying null BS depends on subsquent flag 'is_null_penalty'
-# mode 4: don't penalty thrown tasks
-penalty_mode: 4
+# mode 4: don't penalty thrown tasks, penalize u-c<0 but don't execute it
+# mode 5: don't penalty thrown tasks
+penalty_mode: 5
 penalty: -1000.
 is_null_penalty: False # whether the null selection should be penaltied
+force_ignore_bad_tasks: False  # 强制不执行 u-c<0 的任务, 只能在测试中使用, 否则会与 penalty_mode 冲突
 
 use_entropy: False  # whether using BS selection entropy in the reward
 entropy_factor: 500.   # reward + entropy_factor * entropy
 
 stage2_alg_choice: 0 # 二阶段算法 0 是用贪心, 1 是用 dp
 
-test_global_greedy: True # 如果不使用 global, 则会使用第二阶段的算法
+test_with_stage2: True # 是否在 Test_Scheduler 中使用第二阶段的算法
+
+test_episodes_count: 100

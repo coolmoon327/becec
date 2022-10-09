@@ -62,7 +62,6 @@ class Stage_Two_Pointer:
         self.cost = 0.
         self.u = 0.
         self.penalty = 0.
-
         self.log_thrown_tasks_num = 0
 
         penalty = self._env.config['penalty']
@@ -117,15 +116,14 @@ class Stage_Two_Pointer:
                 elif penalty_mode == 2:
                     self.penalty += penalty * error_num
                     self.log_thrown_tasks_num += error_num
-                elif penalty_mode == 3 or penalty_mode == 4:
+                elif penalty_mode == 3 or penalty_mode == 4 or penalty_mode == 5:
                     # 不对失误进行惩罚
                     self.log_thrown_tasks_num += error_num
 
             c = u + score
             self.cost += c
             self.u += u
-            # if c == 0:
-            #     print(f"Warning: cost is 0! c={c} u={u} score={score}")
+            # if c == 0: print(f"Warning: cost is 0! c={c} u={u} score={score}") # 所有任务都无法执行
 
             for index in range(len(tours)):
                 tid = tours[index]
@@ -136,17 +134,17 @@ class Stage_Two_Pointer:
 
                 self.u += task.u_0
 
-                if (penalty_mode == 3 or penalty_mode == 4) and not self.test_mode:
+                if ((penalty_mode == 3 or penalty_mode == 4) and not self.test_mode) or self._env.config['force_ignore_bad_tasks']:
                     uu, cc = cal_uc(i, task, alloc_list)
                     r = uu - cc
                     if r < 0:
                         # 还原 u 和 c
                         self.u += -uu
                         self.cost += -cc
-                        # 如果是 3 模式, 则完全不考虑负 reward, 包括训练
-                        if penalty_mode != 3:
+                        if penalty_mode == 4:
                             # 将负的 reward 作为 penalty 进行训练, 方便在 pure reward 中查看手动剔除负 reward 分配的效果
                             self.penalty += r
+                        self.log_thrown_tasks_num += 1
                         continue # 完全不分配 u-c<0 的任务, 因为在测试中不会执行这类任务, 因此训练时不用考虑它们对环境的影响, 只用作为惩罚使用
 
                 # allocate 会删除队列中的 task, 因此需要在获取 tasks 时进行 deepcopy

@@ -69,6 +69,8 @@ class BECEC(EnvWrapper):
         elif state_mode == 2:
             # 方案三 - 观测内容：基站信息（delta_t 个时隙的 C） + 任务信息（w, u_0, alpha）
             n_observations = M*delta_t + n_tasks*3
+        elif state_mode == 3:
+            n_observations = M*config['ae_output_size'] + n_tasks*3
 
         if action_mode == 0:
             # 方案一 - 行为内容：任务调度（目标基站） 输出 [-1, 1] 量化成 M+1 个基站编号（其中一个是 null）
