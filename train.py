@@ -15,7 +15,7 @@ if __name__ == "__main__":
 
     BECEC.set_config(config)
     engine = load_engine(config)
-    engine.train(1)
+    engine.train(2)
     """
         mode 0: train both
         mode 1: only train encoder
