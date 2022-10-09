@@ -21,7 +21,7 @@ from tqdm import tqdm
 from env.becec.stage_two.actor import PtrNet1
 from env.becec.stage_two.env import Env_tsp
 from env.becec.stage_two.config import Config, load_pkl, pkl_parser
-from env.becec.stage_two.search import sampling, active_search
+from env.becec.stage_two.search import sampling, active_search, dp
 import pickle
 
 
@@ -59,7 +59,31 @@ class Test(object):
         # trace 的顺序和 tours 改成一致的 trace (batch, task_seq, slots)
         trace['trace'] = trace['trace'][:, trace['tours'], :]
         # trace 的格式改成 (task_seq, slots)
-        if len(trace['tours']) == 0: # 没有能完成的任务
+        if len(trace['tours']) == 0:  # 没有能完成的任务
+            trace['trace'] = np.array([])
+        else:
+            trace['trace'] = trace['trace'].reshape(len(trace['tours']), -1)
+
+        self.trace = trace
+
+    def dp_search(self):
+        data = \
+            self.env.get_task_nodes(self.cfg.seed, self.get_env)
+        total_cost, total_utility, trace = \
+            dp(self.cfg, self.env, data)
+        self.score = total_cost
+        self.u = total_utility
+        # trace[tours] (batch, task_seq) => (task_seq)
+        trace['tours'] = trace['tours'].reshape(-1)
+        # 统计未完成的任务数量
+        trace['error_num'] = np.count_nonzero(trace['tours'] == -1)
+        # trace['tours'] 中的 -1 全部删除掉
+        trace['tours'] = np.delete(trace['tours'],
+                                   np.where(trace['tours'] == -1))
+        # trace 的顺序和 tours 改成一致的 trace (batch, task_seq, slots)
+        trace['trace'] = trace['trace'][:, trace['tours'], :]
+        # trace 的格式改成 (task_seq, slots)
+        if len(trace['tours']) == 0:  # 没有能完成的任务
             trace['trace'] = np.array([])
         else:
             trace['trace'] = trace['trace'].reshape(len(trace['tours']), -1)
@@ -71,6 +95,9 @@ class Test(object):
         可以获取环境信息和任务的输入信息, 可以在这个位置训练整个网络
         :return:
         """
+        pass
+
+    def dp(self):
         pass
 
     def active_search(self):
