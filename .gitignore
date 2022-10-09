@@ -3,7 +3,7 @@ __pycache__/
 data/
 *.out
 *.pyc
-Pkl/
+test5.pkl
 
 !*.py
 !*.md
