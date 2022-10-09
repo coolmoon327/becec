@@ -37,7 +37,8 @@ class LearnerD4PG(object):
         self.log_dir = log_dir
         self.prioritized_replay = config['replay_memory_prioritized']
         self.learner_w_queue = learner_w_queue
-        self.delta_z = (self.v_max - self.v_min) / (self.num_atoms - 1)
+        if config['num_atoms']>1:
+            self.delta_z = (self.v_max - self.v_min) / (self.num_atoms - 1)
 
         self.logger = Logger(f"{log_dir}/learner")
 
@@ -67,6 +68,7 @@ class LearnerD4PG(object):
         self.value_criterion = nn.BCELoss(reduction='none')
 
     def _update_step(self, batch, replay_priority_queue, update_step):
+        config = self.config
         update_time = time.time()
 
         state, action, reward, next_state, done, gamma, weights, inds = batch
@@ -92,10 +94,11 @@ class LearnerD4PG(object):
         critic_value = self.value_net.get_probs(state, action)
         critic_value = critic_value.to(self.device)
 
-        critic_value = critic_value * torch.from_numpy(self.value_net.z_atoms).float().to(self.device)
-        critic_value = torch.sum(critic_value, dim=1)
+        if config['num_atoms']>1:
+            critic_value = critic_value * torch.from_numpy(self.value_net.z_atoms).float().to(self.device)
+            critic_value = torch.sum(critic_value, dim=1)
         loss = nn.MSELoss()
-        value_loss = loss(critic_value, reward)
+        value_loss = loss(critic_value.squeeze(), reward)
         
         # TODO 测试完毕后, 注释掉上面, 并取消下面的注释
 
@@ -148,8 +151,9 @@ class LearnerD4PG(object):
         # -------- Update actor -----------
 
         policy_loss = self.value_net.get_probs(state, self.policy_net(state))
-        policy_loss = policy_loss * torch.from_numpy(self.value_net.z_atoms).float().to(self.device)
-        policy_loss = torch.sum(policy_loss, dim=1)
+        if config['num_atoms']>1:
+            policy_loss = policy_loss * torch.from_numpy(self.value_net.z_atoms).float().to(self.device)
+            policy_loss = torch.sum(policy_loss, dim=1)
 
         if self.config['is_log_max_min_Q']:
             self.logger.scalar_summary("learner/log_v_min", torch.min(policy_loss).detach().cpu().numpy(), update_step.value)

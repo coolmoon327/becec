@@ -34,9 +34,9 @@ critic_learning_rate: 0.0005
 actor_learning_rate: 0.0001
 dense_size: 2000 # size of the hidden layers in networks
 hidden_layer_num: 3 # number of the hidden layers in networks
-num_atoms: 11 # number of atoms in output layer of distributed critic
-v_min: -3000. # lower bound of critic value output distribution (depending on reward and discount_rate)
-v_max: 6000. # upper bound of critic value output distribution
+num_atoms: 1 # number of atoms in output layer of distributed critic
+v_min: -2000. # lower bound of critic value output distribution (depending on reward and discount_rate)
+v_max: 4000. # upper bound of critic value output distribution
 tau: 0.005 # parameter for soft target network updates
 
 is_log_max_min_Q: True  # help to log v_min and v_max through the training process
@@ -132,8 +132,8 @@ force_ignore_bad_tasks: False  # 强制不执行 u-c<0 的任务, 只能在测�
 use_entropy: False  # whether using BS selection entropy in the reward
 entropy_factor: 500.   # reward + entropy_factor * entropy
 
-stage2_alg_choice: 1 # 二阶段算法 0 是用贪心, 1 是用 dp
+stage2_alg_choice: 0 # 二阶段算法 0 是用贪心, 1 是用 dp
 
-test_with_stage2: True # 是否在 Test_Scheduler 中使用第二阶段的算法
+test_with_stage2: False # 是否在 Test_Scheduler 中使用第二阶段的算法
 
 test_episodes_count: 100

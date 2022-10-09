@@ -43,6 +43,8 @@ class ValueNetwork(nn.Module):
             init_w:
         """
         super(ValueNetwork, self).__init__()
+        
+        self.num_atoms = num_atoms
 
         self.linear_in = nn.Linear(num_states + num_actions, hidden_size)
         self.ln_in = nn.LayerNorm(hidden_size)
@@ -53,7 +55,8 @@ class ValueNetwork(nn.Module):
 
         self.linear_out = nn.Linear(hidden_size, num_atoms)
 
-        self.z_atoms = np.linspace(v_min, v_max, num_atoms)
+        if num_atoms > 1:
+            self.z_atoms = np.linspace(v_min, v_max, num_atoms)
 
         self.to(device)
 
@@ -67,7 +70,9 @@ class ValueNetwork(nn.Module):
             x = self.hidden_linears[i](x)
             x = torch.relu(self.lns[i](x))
 
-        x = torch.softmax(self.linear_out(x), dim=1)
+        x = self.linear_out(x)
+        if self.num_atoms > 1:
+            x = torch.softmax(x, dim=1)
         return x
 
     def to(self, device):
