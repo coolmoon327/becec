@@ -41,10 +41,27 @@ def sampling(cfg, env, test_input):
                     torch.tensor(seq.res).unsqueeze(0))
     greedy.greed_score()
 
+    return greedy.score, greedy.u, greedy.traceInfo
+
+def dp(cfg, env, test_input):
+    """
+    返回对比算法的排序
+    :param cfg:
+    :param env:
+    :param test_input:
+    :return: score, u, trace
+    """
+    '''
+        1. 找出对应的序列应该长什么样子
+    '''
+    seq = Sequencing(test_input)
+    seq.sequncing()
+    # 先在这个位置尝试添加对 dp 修改的版本, 输入尽量和 Greedy 完全一致,
+    # 方便后续直接使用 seq 的输出部分
+
     dp = DP(test_input, torch.tensor(seq.res).unsqueeze(0))
     dp.score()
 
-    # return greedy.score, greedy.u, greedy.traceInfo
     return dp.cost, dp.u, dp.traceInfo
 
 
