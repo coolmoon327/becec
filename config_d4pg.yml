@@ -4,7 +4,7 @@ env: BECEC
 random_seed: 88
 num_agents: 8
 
-load_param_while_training: True
+load_param_while_training: False
 
 # Training parameters
 
@@ -21,7 +21,7 @@ n_step_returns: 1 # number of future steps to collect experiences for N-step ret
 update_agent_ep: 1 # agent gets latest parameters from learner every update_agent_ep episodes
 replay_queue_size: 1024 # queue with replays from all the agents
 batch_queue_size: 64 # queue with batches given to learner
-replay_memory_prioritized: 1
+replay_memory_prioritized: False
 num_episode_save: 100
 device: cuda:0
 agent_device: cuda:0
