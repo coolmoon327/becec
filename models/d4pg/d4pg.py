@@ -53,6 +53,8 @@ class LearnerD4PG(object):
         # self.target_value_net = ValueNetwork(state_dim, action_dim, hidden_dim, self.v_min, self.v_max, self.num_atoms, device=self.device)
         self.target_value_net = target_value_net
         self.target_policy_net = target_policy_net
+        self.target_value_net.eval()
+        self.target_policy_net.eval()
 
         if config['wolp_mode'] > 0:
             self.wolp_agent = WolpertingerAgent(config, self.device)
