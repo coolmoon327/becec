@@ -72,6 +72,8 @@ class LearnerD4PG(object):
             self.value_criterion = nn.MSELoss(reduction='none')
         else:
             self.value_criterion = nn.BCELoss(reduction='none')
+        
+        self.reawrd_norm = nn.BatchNorm1d(1).to(config['device'])
 
     def _update_step(self, batch, replay_priority_queue, update_step):
         config = self.config
@@ -94,10 +96,12 @@ class LearnerD4PG(object):
         done = torch.from_numpy(done).float().to(self.device)
 
         # ------- Update critic -------
+        reward = reward.unsqueeze(1)
+        # reward = self.reawrd_norm(reward) # 经过测试, 对一个 batch 对 reward 作 norm 效果很差
+                                            # 在 becec_wrapper 中进行 norm
         
         if config['num_atoms']<=1:
             # 退化成 D3PG
-            reward = reward.unsqueeze(1)
             # not_done = (-done+torch.ones(done.size()).to(self.device)).unsqueeze(1)
 
             # next_action = self.target_policy_net(next_state)
@@ -113,7 +117,8 @@ class LearnerD4PG(object):
         
         else:
             # D4PG
-
+            reward = torch.squeeze(reward)
+            
             # Predict next actions with target policy network
             next_action = self.target_policy_net(next_state).detach()
             

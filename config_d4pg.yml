@@ -2,7 +2,7 @@
 
 env: BECEC
 random_seed: 88
-num_agents: 8
+num_agents: 6
 
 load_param_while_training: False
 
@@ -10,7 +10,7 @@ load_param_while_training: False
 
 model: d4pg
 batch_size: 256
-num_steps_train: 2_000_000 # number of episodes from all agents
+num_steps_train: 5_000_000 # number of episodes from all agents
 max_ep_length: 1000 # maximum number of steps per episode
 replay_mem_size: 5_000_000 # maximum capacity of replay memory
 priority_alpha: 0.6 # controls the randomness vs prioritisation of the prioritised sampling (0.0 = Uniform sampling, 1.0 = Greedy prioritisation)
@@ -21,7 +21,7 @@ n_step_returns: 1 # number of future steps to collect experiences for N-step ret
 update_agent_ep: 1 # agent gets latest parameters from learner every update_agent_ep episodes
 replay_queue_size: 1024 # queue with replays from all the agents
 batch_queue_size: 64 # queue with batches given to learner
-replay_memory_prioritized: False
+replay_memory_prioritized: True
 num_episode_save: 100
 device: cuda:0
 agent_device: cuda:0
@@ -32,7 +32,7 @@ save_reward_threshold: 1 # difference in best reward to save agent model
 
 critic_learning_rate: 0.0005
 actor_learning_rate: 0.0001
-dense_size: 2000 # size of the hidden layers in networks
+dense_size: 2048 # size of the hidden layers in networks
 hidden_layer_num: 3 # number of the hidden layers in networks
 num_atoms: 1 # number of atoms in output layer of distributed critic
 v_min: -2000. # lower bound of critic value output distribution (depending on reward and discount_rate)
@@ -50,8 +50,8 @@ noise_type: 2
 
 # Noise Param
 decay_period: 100_000
-min_sigma: 0.1
-max_sigma: 0.6
+min_sigma: 0.2
+max_sigma: 0.8
 
 # Wolpertinger Architecture, refer to https://arxiv.org/pdf/1512.07679.pdf
 # Only can be used in d4pg:
@@ -134,6 +134,6 @@ entropy_factor: 500.   # reward + entropy_factor * entropy
 
 stage2_alg_choice: 0 # 二阶段算法 0 是用贪心, 1 是用 dp
 
-test_with_stage2: False # 是否在 Test_Scheduler 中使用第二阶段的算法
+test_with_stage2: True # 是否在 Test_Scheduler 中使用第二阶段的算法
 
 test_episodes_count: 100
