@@ -25,8 +25,8 @@ class LayerNorm(nn.Module):
             y = self.gamma.view(*shape) * y + self.beta.view(*shape)
         return y
 
-# nn.LayerNorm = LayerNorm  # use aboved DIY batch norm
-nn.LayerNorm = nn.BatchNorm1d   # use torch's offical batch norm 
+# nn.LayerNorm = LayerNorm  # use aboved DIY layer norm
+nn.LayerNorm = nn.LayerNorm   # use torch's offical layer norm 
 
 class ValueNetwork(nn.Module):
     """Critic - return Q value from given states and actions. """
@@ -58,9 +58,15 @@ class ValueNetwork(nn.Module):
                     nn.ReLU()
                 )
             )
+        modules.append(
+            nn.Sequential(
+                nn.Linear(hidden_size, 64),
+                nn.LayerNorm(64),
+                nn.ReLU()
+            )
+        )
         self.hidden = nn.Sequential(*modules)
-            
-        self.linear_last = nn.Linear(hidden_size, 64)
+        
         self.linear_out = nn.Linear(64, num_atoms)
 
         if num_atoms > 1:
@@ -73,9 +79,8 @@ class ValueNetwork(nn.Module):
 
         x = torch.relu(self.linear_in(x))
         x = self.hidden(x)
-
-        x = self.linear_last(x)
-        x = torch.relu(self.linear_out(x))
+        x = self.linear_out(x)
+        
         if self.num_atoms > 1:
             x = torch.softmax(x, dim=1)
         return x
@@ -128,7 +133,6 @@ class PolicyNetwork(nn.Module):
     def forward(self, state):
         x = torch.relu(self.linear_in(state))
         x = self.hidden(x)
-        
         x = self.linear_out(x)
 
         if self.discrete_action:
