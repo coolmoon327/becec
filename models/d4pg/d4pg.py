@@ -96,17 +96,18 @@ class LearnerD4PG(object):
         if config['num_atoms']<=1:
             # 退化成 D3PG
             reward = reward.unsqueeze(1)
-            not_done = (-done+torch.ones(done.size()).to(self.device)).unsqueeze(1)
+            # not_done = (-done+torch.ones(done.size()).to(self.device)).unsqueeze(1)
 
-            next_action = self.target_policy_net(next_state)
-            target_value = self.target_value_net(next_state, next_action.detach())
-            expected_value = reward + not_done * self.gamma * target_value
+            # next_action = self.target_policy_net(next_state)
+            # target_value = self.target_value_net(next_state, next_action.detach())
+            # expected_value = reward + not_done * self.gamma * target_value
 
-            value = self.value_net(state, action.detach())
-            value_loss = self.value_criterion(value, expected_value.detach())
+            # value = self.value_net(state, action.detach())
+            # value_loss = self.value_criterion(value, expected_value.detach())
             
             # 测试: 将 TD 改成 R
-            # value_loss = value_criterion(critic_value.squeeze(), reward)
+            value = self.value_net(state, action.detach())
+            value_loss = self.value_criterion(value, reward)
         
         else:
             # D4PG

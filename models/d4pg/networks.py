@@ -25,7 +25,8 @@ class LayerNorm(nn.Module):
             y = self.gamma.view(*shape) * y + self.beta.view(*shape)
         return y
 
-nn.LayerNorm = LayerNorm
+# nn.LayerNorm = LayerNorm  # use aboved DIY batch norm
+nn.LayerNorm = nn.BatchNorm1d   # use torch's offical batch norm 
 
 class ValueNetwork(nn.Module):
     """Critic - return Q value from given states and actions. """
@@ -47,13 +48,20 @@ class ValueNetwork(nn.Module):
         self.num_atoms = num_atoms
 
         self.linear_in = nn.Linear(num_states + num_actions, hidden_size)
-        self.ln_in = nn.LayerNorm(hidden_size)
 
-        self.hidden_layer_num = hidden_layer_num
-        self.hidden_linears = [nn.Linear(hidden_size, hidden_size) for _ in range(self.hidden_layer_num)]
-        self.lns = [nn.LayerNorm(hidden_size) for _ in range(self.hidden_layer_num)]
-
-        self.linear_out = nn.Linear(hidden_size, num_atoms)
+        modules = []
+        for i in range(hidden_layer_num):
+            modules.append(
+                nn.Sequential(
+                    nn.Linear(hidden_size, hidden_size),
+                    nn.LayerNorm(hidden_size),
+                    nn.ReLU()
+                )
+            )
+        self.hidden = nn.Sequential(*modules)
+            
+        self.linear_last = nn.Linear(hidden_size, 64)
+        self.linear_out = nn.Linear(64, num_atoms)
 
         if num_atoms > 1:
             self.z_atoms = np.linspace(v_min, v_max, num_atoms)
@@ -63,24 +71,17 @@ class ValueNetwork(nn.Module):
     def forward(self, state, action):
         x = torch.cat([state, action], 1)
 
-        x = self.linear_in(x)
-        x = torch.relu(self.ln_in(x))
+        x = torch.relu(self.linear_in(x))
+        x = self.hidden(x)
 
-        for i in range(self.hidden_layer_num):
-            x = self.hidden_linears[i](x)
-            x = torch.relu(self.lns[i](x))
-
-        x = self.linear_out(x)
+        x = self.linear_last(x)
+        x = torch.relu(self.linear_out(x))
         if self.num_atoms > 1:
             x = torch.softmax(x, dim=1)
         return x
 
     def to(self, device):
         super(ValueNetwork, self).to(device)
-        for layer in self.hidden_linears:
-            layer.to(device)
-        for layer in self.lns:
-            layer.to(device)
         self.device = device
 
     def get_probs(self, state, action):
@@ -103,11 +104,17 @@ class PolicyNetwork(nn.Module):
         self.device = device
 
         self.linear_in = nn.Linear(num_states, hidden_size)
-        self.ln_in = nn.LayerNorm(hidden_size)
 
-        self.hidden_layer_num = hidden_layer_num
-        self.hidden_linears = [nn.Linear(hidden_size, hidden_size) for _ in range(self.hidden_layer_num)]
-        self.lns = [nn.LayerNorm(hidden_size) for _ in range(self.hidden_layer_num)]
+        modules = []
+        for i in range(hidden_layer_num):
+            modules.append(
+                nn.Sequential(
+                    nn.Linear(hidden_size, hidden_size),
+                    nn.LayerNorm(hidden_size),
+                    nn.ReLU()
+                )
+            )
+        self.hidden = nn.Sequential(*modules)
 
         self.linear_out = nn.Linear(hidden_size, num_actions)
         
@@ -119,12 +126,8 @@ class PolicyNetwork(nn.Module):
         self.to(device)
 
     def forward(self, state):
-        x = self.linear_in(state)
-        x = torch.relu(self.ln_in(x))
-
-        for i in range(self.hidden_layer_num):
-            x = self.hidden_linears[i](x)
-            x = torch.relu(self.lns[i](x))
+        x = torch.relu(self.linear_in(state))
+        x = self.hidden(x)
         
         x = self.linear_out(x)
 
@@ -137,19 +140,15 @@ class PolicyNetwork(nn.Module):
 
         return x
 
-    def to(self, device):
-        super(PolicyNetwork, self).to(device)
-        for layer in self.hidden_linears:
-            layer.to(device)
-        for layer in self.lns:
-            layer.to(device)
-        self.device = device
-
     def get_action(self, state):
         # actions are mapped into [-1., 1.]
         state = torch.from_numpy(state).float().unsqueeze(0).to(self.device)
         action = self.forward(state)
         return action
+
+    def to(self, device):
+        super(PolicyNetwork, self).to(device)
+        self.device = device
 
 
 class AutoEncoderNetwork(nn.Module):

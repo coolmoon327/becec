@@ -30,6 +30,7 @@ class Agent(object):
         self.ou_noise.reset()
 
         self.actor = policy
+        self.actor.eval()
         print("Agent ", n_agent, self.actor.device)
 
         if config['wolp_mode'] > 0:
