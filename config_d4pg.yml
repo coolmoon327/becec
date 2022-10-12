@@ -33,9 +33,9 @@ save_reward_threshold: 1 # difference in best reward to save agent model
 critic_learning_rate: 0.0005
 actor_learning_rate: 0.0001
 dense_size: 2048 # size of the hidden layers in networks
-hidden_layer_num: 3 # number of the hidden layers in networks
-num_atoms: 1 # number of atoms in output layer of distributed critic
-v_min: -2000. # lower bound of critic value output distribution (depending on reward and discount_rate)
+hidden_layer_num: 2 # number of the hidden layers in networks
+num_atoms: 11 # number of atoms in output layer of distributed critic
+v_min: -1000. # lower bound of critic value output distribution (depending on reward and discount_rate)
 v_max: 4000. # upper bound of critic value output distribution
 tau: 0.005 # parameter for soft target network updates
 
@@ -50,8 +50,8 @@ noise_type: 2
 
 # Noise Param
 decay_period: 100_000
-min_sigma: 0.2
-max_sigma: 0.8
+min_sigma: 0.1
+max_sigma: 0.6
 
 # Wolpertinger Architecture, refer to https://arxiv.org/pdf/1512.07679.pdf
 # Only can be used in d4pg:
@@ -83,7 +83,7 @@ shuffle_bs: 0
 sort_tasks: True
 
 M: 10 # number of BSs
-delta_t: 30 # number of future slots the algorithm use to allocate at once
+delta_t: 10 # number of future slots the algorithm use to allocate at once
 T: 200 # number of time slots
 # frame: 10 # the length of a frame (warning: was discarded)
 n_tasks: 5 # number of tasks in a group
@@ -99,7 +99,7 @@ frame_mode: 1
 # mode 1: observation = BS Info (delta_t slots of C) cast to 2 dimensions + Task Info (w, alpha, u_0)
 # mode 2: observation = BS Info (delta_t slots of C) + Task Info (w, alpha, u_0)
 # mode 3: Auto-Encoder, observation = BS Info (delta_t slots of C) + Task Info (w, alpha, u_0)
-state_mode: 3
+state_mode: 2
 # Auto-Encoder (only used in state_mode 3)
 ae_learning_rate: 0.0005
 ae_batch_size: 512
@@ -135,5 +135,12 @@ entropy_factor: 500.   # reward + entropy_factor * entropy
 stage2_alg_choice: 0 # 二阶段算法 0 是用贪心, 1 是用 dp
 
 test_with_stage2: True # 是否在 Test_Scheduler 中使用第二阶段的算法
+
+# mode: 
+# 0 - greedy
+# 1 - fully random
+# 2 - partial random
+# 10 - obtain auto-encoder trainning data
+test_mode: 0
 
 test_episodes_count: 100

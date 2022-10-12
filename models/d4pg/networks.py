@@ -55,7 +55,7 @@ class ValueNetwork(nn.Module):
                 nn.Sequential(
                     nn.Linear(hidden_size, hidden_size),
                     nn.LayerNorm(hidden_size),
-                    nn.Dropout(p=0.2),
+                    # nn.Dropout(p=0.2),
                     nn.ReLU()
                 )
             )
@@ -118,15 +118,13 @@ class PolicyNetwork(nn.Module):
                 nn.Sequential(
                     nn.Linear(hidden_size, hidden_size),
                     nn.LayerNorm(hidden_size),
-                    nn.Dropout(p=0.2),
+                    # nn.Dropout(p=0.2),
                     nn.ReLU()
                 )
             )
         modules.append(
             nn.Sequential(
-                nn.Linear(hidden_size, 256),
-                nn.ReLU(),
-                nn.Linear(256, 64),
+                nn.Linear(hidden_size, 64),
                 nn.ReLU()
             )
         )

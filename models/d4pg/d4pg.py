@@ -111,7 +111,7 @@ class LearnerD4PG(object):
             # value = self.value_net(state, action.detach())
             # value_loss = self.value_criterion(value, expected_value.detach())
             
-            # 测试: 将 TD 改成 R
+            # # 测试: 将 TD 改成 R
             value = self.value_net(state, action.detach())
             value_loss = self.value_criterion(value, reward)
         

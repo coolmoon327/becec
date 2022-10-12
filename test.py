@@ -17,5 +17,5 @@ if __name__ == "__main__":
     # engine = load_engine(config)
     # engine.test()
 
-    test_scheduler = Test_Scheduler(config,0)
+    test_scheduler = Test_Scheduler(config, config['test_mode'])
     test_scheduler.run()
