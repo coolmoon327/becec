@@ -10,7 +10,7 @@ load_param_while_training: False
 
 model: d4pg
 batch_size: 512
-num_steps_train: 5_000_000 # number of episodes from all agents
+num_steps_train: 500_000 # number of episodes from all agents
 max_ep_length: 1000 # maximum number of steps per episode
 replay_mem_size: 5_000_000 # maximum capacity of replay memory
 priority_alpha: 0.6 # controls the randomness vs prioritisation of the prioritised sampling (0.0 = Uniform sampling, 1.0 = Greedy prioritisation)
@@ -34,7 +34,7 @@ critic_learning_rate: 0.0005
 actor_learning_rate: 0.0001
 dense_size: 2048 # size of the hidden layers in networks
 hidden_layer_num: 2 # number of the hidden layers in networks
-num_atoms: 11 # number of atoms in output layer of distributed critic
+num_atoms: 1 # number of atoms in output layer of distributed critic
 v_min: -1000. # lower bound of critic value output distribution (depending on reward and discount_rate)
 v_max: 4000. # upper bound of critic value output distribution
 tau: 0.005 # parameter for soft target network updates
@@ -142,6 +142,7 @@ test_with_stage2: True # 是否在 Test_Scheduler 中使用第二阶段的算法
 # 1 - fully random
 # 2 - partial random
 # 10 - obtain auto-encoder trainning data
+# 11 - test stage 1 RL + stage 2
 test_mode: 0
 
 test_episodes_count: 100
