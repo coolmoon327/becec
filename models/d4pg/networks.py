@@ -47,7 +47,11 @@ class ValueNetwork(nn.Module):
         
         self.num_atoms = num_atoms
 
-        self.linear_in = nn.Linear(num_states + num_actions, hidden_size)
+        self.linear_in = nn.Sequential(
+            nn.Linear(num_states + num_actions, hidden_size),
+            nn.LayerNorm(hidden_size),
+            nn.ReLU()
+        )
 
         modules = []
         for i in range(hidden_layer_num):
@@ -59,17 +63,14 @@ class ValueNetwork(nn.Module):
                     nn.ReLU()
                 )
             )
-        modules.append(
-            nn.Sequential(
-                nn.Linear(hidden_size, 256),
-                nn.ReLU(),
-                nn.Linear(256, 32),
-                nn.ReLU()
-            )
-        )
         self.hidden = nn.Sequential(*modules)
         
-        self.linear_out = nn.Linear(32, num_atoms)
+        self.linear_out = nn.Sequential(
+            nn.Linear(hidden_size, 128),
+            nn.LayerNorm(128),
+            nn.ReLU(),
+            nn.Linear(128, num_atoms)
+        )
 
         if num_atoms > 1:
             self.z_atoms = np.linspace(v_min, v_max, num_atoms)
@@ -79,7 +80,7 @@ class ValueNetwork(nn.Module):
     def forward(self, state, action):
         x = torch.cat([state, action], 1)
 
-        x = torch.relu(self.linear_in(x))
+        x = self.linear_in(x)
         x = self.hidden(x)
         x = self.linear_out(x)
         
@@ -110,7 +111,11 @@ class PolicyNetwork(nn.Module):
         super(PolicyNetwork, self).__init__()
         self.device = device
 
-        self.linear_in = nn.Linear(num_states, hidden_size)
+        self.linear_in = nn.Sequential(
+            nn.Linear(num_states, hidden_size),
+            nn.LayerNorm(hidden_size),
+            nn.ReLU()
+        )
 
         modules = []
         for i in range(hidden_layer_num):
@@ -122,15 +127,14 @@ class PolicyNetwork(nn.Module):
                     nn.ReLU()
                 )
             )
-        modules.append(
-            nn.Sequential(
-                nn.Linear(hidden_size, 64),
-                nn.ReLU()
-            )
-        )
         self.hidden = nn.Sequential(*modules)
 
-        self.linear_out = nn.Linear(64, num_actions)
+        self.linear_out = nn.Sequential(
+                nn.Linear(hidden_size, 128),
+                nn.LayerNorm(128),
+                nn.ReLU(),
+                nn.Linear(128, num_actions)
+            )
         
         self.discrete_action = discrete_action
         self.groups_num = group_num
@@ -140,7 +144,7 @@ class PolicyNetwork(nn.Module):
         self.to(device)
 
     def forward(self, state):
-        x = torch.relu(self.linear_in(state))
+        x = self.linear_in(state)
         x = self.hidden(x)
         x = self.linear_out(x)
 

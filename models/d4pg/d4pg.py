@@ -151,13 +151,14 @@ class LearnerD4PG(object):
             value_loss = self.value_criterion(critic_value, target_z_projected)
             value_loss = value_loss.mean(axis=1)
 
-        # Update priorities in buffer
-        td_error = value_loss.cpu().detach().numpy().flatten()
-        priority_epsilon = 1e-4
-        if self.prioritized_replay:
-            weights_update = np.abs(td_error) + priority_epsilon
-            replay_priority_queue.put((inds, weights_update))
-            value_loss = value_loss * torch.tensor(weights).float().to(self.device)
+            # Update priorities in buffer
+            # D3PG 还没有完成适配, 暂时只能 D4PG 使用
+            td_error = value_loss.cpu().detach().numpy().flatten()
+            priority_epsilon = 1e-4
+            if self.prioritized_replay:
+                weights_update = np.abs(td_error) + priority_epsilon
+                replay_priority_queue.put((inds, weights_update))
+                value_loss = value_loss * torch.tensor(weights).float().to(self.device)
 
         # Update step
         value_loss = value_loss.mean()
