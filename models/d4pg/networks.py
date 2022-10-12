@@ -71,6 +71,9 @@ class ValueNetwork(nn.Module):
             nn.ReLU(),
             nn.Linear(128, num_atoms)
         )
+        # self.linear_out = nn.Sequential(
+        #     nn.Linear(hidden_size, num_atoms)
+        # )
 
         if num_atoms > 1:
             self.z_atoms = np.linspace(v_min, v_max, num_atoms)
@@ -134,7 +137,10 @@ class PolicyNetwork(nn.Module):
                 nn.LayerNorm(128),
                 nn.ReLU(),
                 nn.Linear(128, num_actions)
-            )
+        )
+        # self.linear_out = nn.Sequential(
+        #     nn.Linear(hidden_size, num_actions)
+        # )
         
         self.discrete_action = discrete_action
         self.groups_num = group_num

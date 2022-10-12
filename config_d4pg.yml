@@ -9,7 +9,7 @@ load_param_while_training: False
 # Training parameters
 
 model: d4pg
-batch_size: 256
+batch_size: 512
 num_steps_train: 5_000_000 # number of episodes from all agents
 max_ep_length: 1000 # maximum number of steps per episode
 replay_mem_size: 5_000_000 # maximum capacity of replay memory
@@ -25,7 +25,7 @@ replay_memory_prioritized: True
 num_episode_save: 100
 device: cuda:0
 agent_device: cuda:0
-save_buffer_on_disk: 0
+save_buffer_on_disk: True
 save_reward_threshold: 1 # difference in best reward to save agent model
 
 # Network parameters
@@ -99,7 +99,13 @@ frame_mode: 1
 # mode 1: observation = BS Info (delta_t slots of C) cast to 2 dimensions + Task Info (w, alpha, u_0)
 # mode 2: observation = BS Info (delta_t slots of C) + Task Info (w, alpha, u_0)
 # mode 3: Auto-Encoder, observation = BS Info (delta_t slots of C) + Task Info (w, alpha, u_0)
-state_mode: 2
+state_mode: 1
+
+# action
+# plan 0: action = target BS numbers -- for each task, output [-1, 1] and quantify to  M+1 number (M BSs + 1 null)
+# plan 1: action = one-hot -- for each task, output (M+1)*[0, 1] as a group (softmax), indicates the one-hot rate of BSs
+action_mode: 1
+
 # Auto-Encoder (only used in state_mode 3)
 ae_learning_rate: 0.0005
 ae_batch_size: 512
@@ -109,11 +115,6 @@ ae_output_size: 10
 ae_hidden_layer_num: 2
 ae_always_train: True # continue to train AE while training RL
 ae_pretrain_episodes_count: 1000
-
-# action
-# plan 0: action = target BS numbers -- for each task, output [-1, 1] and quantify to  M+1 number (M BSs + 1 null)
-# plan 1: action = one-hot -- for each task, output (M+1)*[0, 1] as a group (softmax), indicates the one-hot rate of BSs
-action_mode: 1
 
 # penalty
 # mode 0: throw all external_tasks in the busy BS, utinity += penalty*len(external_tasks)
