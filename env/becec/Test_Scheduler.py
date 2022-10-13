@@ -236,7 +236,9 @@ class Scheduler():
         else:
             counts_max = self.config['test_episodes_count']
 
-        sum_ = np.zeros(3)
+        
+        sum_ = np.zeros(4)  # thrown reward time task_num
+        er_log = []         # 记录 episode reward, 方便求方差
         while counts < counts_max:
             counts+=1
             episode_reward = 0.
@@ -268,11 +270,15 @@ class Scheduler():
             sum_[0] += self.thrown_num
             sum_[1] += episode_reward
             sum_[2] += episode_time
-            print(f"{BS_print}\nThrown tasks: {self.thrown_num} | Pure reward: {episode_reward}")
+            sum_[3] += self._env.episode_task_num
+            er_log.append(episode_reward)
+            print(f"{BS_print}\nThrown tasks: {self.thrown_num} | Pure reward: {episode_reward} | Total tasks: {self._env.episode_task_num}")
             print("---")
         
         if self.mode != 10:
-            print(f"Mean: Thrown tasks: {sum_[0]/counts_max} | Pure reward: {sum_[1]/counts_max} | Episode Time: {sum_[2]/counts_max}")
+            print(f"Mean: Thrown tasks: {sum_[0]/counts_max} | Pure reward: {sum_[1]/counts_max} | Episode Time: {sum_[2]/counts_max} | Episode Tasks Number: {sum_[3]/counts_max}")
+            ers = np.array(er_log)
+            print(f"Episode Reward: Mean: {ers.mean()}, Std: {ers.std()}")
         else:
             self.save(f"database_dt_{self.config['delta_t']}")
             print("Finish observation data gaining.")

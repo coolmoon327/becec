@@ -79,7 +79,8 @@ class Agent(object):
             # Only used in testing mode, meaning the total number of episodes
             counts = 0 
             counts_max = self.config['test_episodes_count']
-            sum_ = np.zeros(4)  # thrown error reward time
+            sum_ = np.zeros(5)  # thrown error reward time task_num
+            er_log = [] # 记录 episode reward, 方便求方差
 
         while training_on.value:
             if training_on.value == 2:
@@ -284,11 +285,13 @@ class Agent(object):
                 self.logger.scalars_summary(f"agent_{self.agent_type}/bs_selection_PRACTICE", dict2, step)
             
                 if training_on.value == 2:
-                    # thrown error reward time
+                    # thrown error reward time task_num
                     sum_[0] += episode_null_num
                     sum_[1] += episode_thrown_num
                     sum_[2] += episode_reward_pure
                     sum_[3] += episode_time
+                    sum_[4] += self.env_wrapper.env._env.episode_task_num
+                    er_log.append(episode_reward_pure)
                     
 
             if self.config["save_reward_threshold"] >= 0 and training_on.value == 1:
@@ -307,7 +310,9 @@ class Agent(object):
         empty_torch_queue(replay_queue)
         print(f"Agent {self.n_agent} done.")
         if training_on.value == 2:
-            print(f"Mean: Thrown tasks: {sum_[0]/counts_max} | Error tasks: {sum_[1]/counts_max} | Pure reward: {sum_[2]/counts_max} | Episode Time: {sum_[3]/counts_max}")
+            print(f"Mean: Thrown tasks: {sum_[0]/counts_max} | Error tasks: {sum_[1]/counts_max} | Pure reward: {sum_[2]/counts_max} | Episode Time: {sum_[3]/counts_max} | Episode Tasks Number: {sum_[4]/counts_max}")
+            ers = np.array(er_log)
+            print(f"Episode Reward: Mean: {ers.mean()}, Std: {ers.std()}")
 
     def save(self, checkpoint_name):
         # process_dir = f"{self.log_dir}/agent_{self.n_agent}"

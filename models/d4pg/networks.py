@@ -133,10 +133,10 @@ class PolicyNetwork(nn.Module):
         self.hidden = nn.Sequential(*modules)
 
         self.linear_out = nn.Sequential(
-                nn.Linear(hidden_size, 128),
-                nn.LayerNorm(128),
+                nn.Linear(hidden_size, 512),
+                nn.LayerNorm(512),
                 nn.ReLU(),
-                nn.Linear(128, num_actions)
+                nn.Linear(512, num_actions)
         )
         # self.linear_out = nn.Sequential(
         #     nn.Linear(hidden_size, num_actions)
