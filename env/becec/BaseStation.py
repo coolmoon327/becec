@@ -257,9 +257,9 @@ class BaseStation:
         :return:                        0 for success, -1 for failure
         """
         ret = 0
-        if not self.is_resource_enough(task=task):
-            # 第一阶段的分配出现了问题，如果要使用 CMDP，可能需要在这里进行一些操作
-            ret = -1
+        # if not self.is_resource_enough(task=task):
+        #     # 第一阶段的分配出现了问题，如果要使用 CMDP，可能需要在这里进行一些操作
+        #     ret = -1
         self.tasks_external.append(task)        # 在第二阶段对无法分配的任务进行惩罚，因此始终添加任务
         return ret
 
