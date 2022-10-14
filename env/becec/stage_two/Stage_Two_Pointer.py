@@ -136,7 +136,7 @@ class Stage_Two_Pointer:
 
                 self.u += task.u_0
 
-                if (penalty_mode == 3 or penalty_mode == 4) and not self.test_mode:
+                if ((penalty_mode == 3 or penalty_mode == 4) and not self.test_mode) or self._env.config['force_ignore_bad_tasks']:
                     uu, cc = cal_uc(i, task, alloc_list)
                     r = uu - cc
                     if r < 0:
@@ -144,7 +144,7 @@ class Stage_Two_Pointer:
                         self.u += -uu
                         self.cost += -cc
                         # 如果是 3 模式, 则完全不考虑负 reward, 包括训练
-                        if penalty_mode != 3:
+                        if penalty_mode == 4:
                             # 将负的 reward 作为 penalty 进行训练, 方便在 pure reward 中查看手动剔除负 reward 分配的效果
                             self.penalty += r
                         continue # 完全不分配 u-c<0 的任务, 因为在测试中不会执行这类任务, 因此训练时不用考虑它们对环境的影响, 只用作为惩罚使用
