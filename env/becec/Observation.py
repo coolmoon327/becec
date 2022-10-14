@@ -1,3 +1,4 @@
+from ftplib import error_perm
 import numpy
 import numpy as np
 import copy
@@ -222,10 +223,19 @@ class Observation(object):
         # 1. 执行第一阶段
         num_null = self.execute(action)
     
+        # 确保没有出现因为代码原因导致的分配错误
+        left_tasks_num = self._env.task_set.__len__()-num_null
+        # left_tasks_num = self.config['n_tasks']-num_null
+        for i in range(self._env.config['M']):
+            tasks = self._env.get_BS_tasks_external(BS_ID=i)
+            left_tasks_num -= len(tasks)
+    
         # 2. 执行第二阶段（将第二阶段的算法当作一个黑盒模块）
         c, u, penalty = self.alg_2.execute()
         if self.config["is_null_penalty"]:
             penalty += self._env.config['penalty']/10 * num_null    # 惩罚 Null 基站
+            
+        error_num = self.alg_2.get_thrown_tasks_num()+left_tasks_num
 
         if self.config['use_entropy']:
             # 向 reward 中加入关于 BS 选择概率的熵
@@ -241,7 +251,7 @@ class Observation(object):
 
         reward = u - c + penalty
 
-        self.log_details.append(self.alg_2.get_thrown_tasks_num())
+        self.log_details.append(error_num)
         self.log_details.append(num_null)
         self.log_details.append(reward)
         self.log_details.append(u-c)
