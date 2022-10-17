@@ -42,6 +42,12 @@ def sampler_worker(config, replay_queue, batch_queue, replay_priorities_queue, t
 
     # Create replay buffer
     replay_buffer = create_replay_buffer(config)
+    buffer_file_dir = f"{config['results_path']}/Replay_Buffer"
+    buffer_file_name = f"M_{config['M']}_T_{config['T']}_Dt_{config['delta_t']}_Gamma_{config['discount_rate']}.pkl"
+    try:
+        replay_buffer.load(buffer_file_dir, buffer_file_name)
+    except:
+        print("Replay Buffer Loading Failed.")
 
     while training_on.value:
         # (1) Transfer replays to global buffer
@@ -77,7 +83,7 @@ def sampler_worker(config, replay_queue, batch_queue, replay_priorities_queue, t
         logger.scalar_summary("data_struct/replay_buffer", len(replay_buffer), step)
 
     if config['save_buffer_on_disk']:
-        replay_buffer.dump(config["results_path"])
+        replay_buffer.dump(buffer_file_dir, buffer_file_name)
 
     empty_torch_queue(batch_queue)
     print("Stop sampler worker.")

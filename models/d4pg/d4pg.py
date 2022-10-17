@@ -1,5 +1,6 @@
 from distutils.command.config import config
 import time
+from matplotlib.pyplot import axis
 import numpy as np
 import torch
 import torch.nn as nn
@@ -37,7 +38,8 @@ class LearnerD4PG(object):
         self.log_dir = log_dir
         self.prioritized_replay = config['replay_memory_prioritized']
         self.learner_w_queue = learner_w_queue
-        self.delta_z = (self.v_max - self.v_min) / (self.num_atoms - 1)
+        if config['num_atoms']>1:
+            self.delta_z = (self.v_max - self.v_min) / (self.num_atoms - 1)
 
         self.logger = Logger(f"{log_dir}/learner")
 
@@ -51,6 +53,8 @@ class LearnerD4PG(object):
         # self.target_value_net = ValueNetwork(state_dim, action_dim, hidden_dim, self.v_min, self.v_max, self.num_atoms, device=self.device)
         self.target_value_net = target_value_net
         self.target_policy_net = target_policy_net
+        self.target_value_net.eval()
+        self.target_policy_net.eval()
 
         if config['wolp_mode'] > 0:
             self.wolp_agent = WolpertingerAgent(config, self.device)
@@ -64,9 +68,15 @@ class LearnerD4PG(object):
         self.value_optimizer = optim.Adam(self.value_net.parameters(), lr=value_lr)
         self.policy_optimizer = optim.Adam(self.policy_net.parameters(), lr=policy_lr)
 
-        self.value_criterion = nn.BCELoss(reduction='none')
+        if config['num_atoms']<=1:
+            self.value_criterion = nn.MSELoss(reduction='none')
+        else:
+            self.value_criterion = nn.BCELoss(reduction='none')
+        
+        self.reawrd_norm = nn.BatchNorm1d(1).to(config['device'])
 
     def _update_step(self, batch, replay_priority_queue, update_step):
+        config = self.config
         update_time = time.time()
 
         state, action, reward, next_state, done, gamma, weights, inds = batch
@@ -86,46 +96,69 @@ class LearnerD4PG(object):
         done = torch.from_numpy(done).float().to(self.device)
 
         # ------- Update critic -------
-
-        # Predict next actions with target policy network
-        next_action = self.target_policy_net(next_state).detach()
+        reward = reward.unsqueeze(1)
+        # reward = self.reawrd_norm(reward) # 经过测试, 对一个 batch 对 reward 作 norm 效果很差
+                                            # 在 becec_wrapper 中进行 norm
         
-        if self.config['wolp_mode'] == 1:
-            if not isinstance(next_action, np.ndarray):
-                next_action = next_action.cpu().numpy().astype(np.float64)
-            if next_action.ndim == 1:
-                next_action = np.expand_dims(next_action, axis=0)
-            raw_ans, ans = self.wolp_agent.wolp_action(self.value_net, state, next_action)
-            next_action = torch.from_numpy(raw_ans).type(torch.FloatTensor).to(self.device)
+        if config['num_atoms']<=1:
+            # 退化成 D3PG
+            # not_done = (-done+torch.ones(done.size()).to(self.device)).unsqueeze(1)
+
+            # next_action = self.target_policy_net(next_state)
+            # target_value = self.target_value_net(next_state, next_action.detach())
+            # expected_value = reward + not_done * self.gamma * target_value
+
+            # value = self.value_net(state, action.detach())
+            # value_loss = self.value_criterion(value, expected_value.detach())
+            
+            # # 测试: 将 TD 改成 R
+            value = self.value_net(state, action.detach())
+            value_loss = self.value_criterion(value, reward)
+        
+        else:
+            # D4PG
+            reward = torch.squeeze(reward)
+            
+            # Predict next actions with target policy network
+            next_action = self.target_policy_net(next_state).detach()
+            
+            if self.config['wolp_mode'] == 1:
+                if not isinstance(next_action, np.ndarray):
+                    next_action = next_action.cpu().numpy().astype(np.float64)
+                if next_action.ndim == 1:
+                    next_action = np.expand_dims(next_action, axis=0)
+                raw_ans, ans = self.wolp_agent.wolp_action(self.value_net, state, next_action)
+                next_action = torch.from_numpy(raw_ans).type(torch.FloatTensor).to(self.device)
 
 
-        # Predict Z distribution with target value network
-        target_value = self.target_value_net.get_probs(next_state, next_action)
+            # Predict Z distribution with target value network
+            target_value = self.target_value_net.get_probs(next_state, next_action)
 
-        # Get projected distribution
-        target_z_projected = _l2_project(next_distr_v=target_value,
-                                         rewards_v=reward,
-                                         dones_mask_t=done,
-                                         gamma=self.gamma ** self.n_step_return,
-                                         n_atoms=self.num_atoms,
-                                         v_min=self.v_min,
-                                         v_max=self.v_max,
-                                         delta_z=self.delta_z)
-        target_z_projected = torch.from_numpy(target_z_projected).float().to(self.device)
+            # Get projected distribution
+            target_z_projected = _l2_project(next_distr_v=target_value,
+                                            rewards_v=reward,
+                                            dones_mask_t=done,
+                                            gamma=self.gamma ** self.n_step_return,
+                                            n_atoms=self.num_atoms,
+                                            v_min=self.v_min,
+                                            v_max=self.v_max,
+                                            delta_z=self.delta_z)
+            target_z_projected = torch.from_numpy(target_z_projected).float().to(self.device)
 
-        critic_value = self.value_net.get_probs(state, action)
-        critic_value = critic_value.to(self.device)
+            critic_value = self.value_net.get_probs(state, action)
+            critic_value = critic_value.to(self.device)
 
-        value_loss = self.value_criterion(critic_value, target_z_projected)
-        value_loss = value_loss.mean(axis=1)
+            value_loss = self.value_criterion(critic_value, target_z_projected)
+            value_loss = value_loss.mean(axis=1)
 
-        # Update priorities in buffer
-        td_error = value_loss.cpu().detach().numpy().flatten()
-        priority_epsilon = 1e-4
-        if self.prioritized_replay:
-            weights_update = np.abs(td_error) + priority_epsilon
-            replay_priority_queue.put((inds, weights_update))
-            value_loss = value_loss * torch.tensor(weights).float().to(self.device)
+            # Update priorities in buffer
+            # D3PG 还没有完成适配, 暂时只能 D4PG 使用
+            td_error = value_loss.cpu().detach().numpy().flatten()
+            priority_epsilon = 1e-4
+            if self.prioritized_replay:
+                weights_update = np.abs(td_error) + priority_epsilon
+                replay_priority_queue.put((inds, weights_update))
+                value_loss = value_loss * torch.tensor(weights).float().to(self.device)
 
         # Update step
         value_loss = value_loss.mean()
@@ -136,8 +169,9 @@ class LearnerD4PG(object):
         # -------- Update actor -----------
 
         policy_loss = self.value_net.get_probs(state, self.policy_net(state))
-        policy_loss = policy_loss * torch.from_numpy(self.value_net.z_atoms).float().to(self.device)
-        policy_loss = torch.sum(policy_loss, dim=1)
+        if config['num_atoms']>1:
+            policy_loss = policy_loss * torch.from_numpy(self.value_net.z_atoms).float().to(self.device)
+            policy_loss = torch.sum(policy_loss, dim=1)
 
         if self.config['is_log_max_min_Q']:
             self.logger.scalar_summary("learner/log_v_min", torch.min(policy_loss).detach().cpu().numpy(), update_step.value)

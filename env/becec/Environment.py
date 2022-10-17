@@ -28,6 +28,7 @@ class Environment:
         self.timer = 0
         
         self.task_set = []
+        self.episode_task_num = 0   # 记录从上一次 reset 开始环境中的 tasks 数量
 
         # frame_mode 0 only
         self.frame_timer = 0
@@ -40,6 +41,7 @@ class Environment:
     def reset(self):
         self.timer = 0
         self.task_set.clear()
+        self.episode_task_num = 0
         
         self.frame_timer = 0
         self.task_batch_num = 0
@@ -157,7 +159,9 @@ class Environment:
                 # 把 task 的到达时间重新设置为 frame 中最后一个 slot 的编号
                 for task in tasks:
                     task.arrival_time = frame_end_slot
+                self.episode_task_num += tasks.__len__()
                 self.task_set += tasks
+                
         elif self.config['frame_mode'] == 1:
             if self.clear_flag:
                 self.task_set.clear()
@@ -168,6 +172,7 @@ class Environment:
 
             for bs in self.BS:
                 tasks = bs.next()
+                self.episode_task_num += tasks.__len__()
                 self.task_set += tasks
             
             while len(self.task_set) > self.config['n_tasks']:

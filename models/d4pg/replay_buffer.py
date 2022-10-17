@@ -82,11 +82,19 @@ class ReplayBuffer(object):
         inds = np.zeros(len(idxes))
         return self._encode_sample(idxes) + [weights, inds]
 
-    def dump(self, save_dir):
-        fn = os.path.join(save_dir, "replay_buffer.pkl")
+    def dump(self, save_dir, filename="replay_buffer.pkl"):
+        fn = os.path.join(save_dir, filename)
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
         with open(fn, 'wb') as f:
             pickle.dump(self._storage, f)
         print(f"Buffer dumped to {fn}")
+    
+    def load(self, save_dir, filename="replay_buffer.pkl"):
+        fn = os.path.join(save_dir, filename)
+        with open(fn, 'wb') as f:
+            self._storage = pickle.load(f)
+        print(f"Buffer loaded from {fn}")
 
 
 class PrioritizedReplayBuffer(ReplayBuffer):
@@ -221,12 +229,6 @@ class PrioritizedReplayBuffer(ReplayBuffer):
             self._it_min[idx] = priority ** self._alpha
 
             self._max_priority = max(self._max_priority, priority)
-
-    def dump(self, save_dir):
-        fn = os.path.join(save_dir, "replay_buffer.pkl")
-        with open(fn, 'wb') as f:
-            pickle.dump(self._storage, f)
-        print(f"Buffer dumped to {fn}")
 
 
 def create_replay_buffer(config):

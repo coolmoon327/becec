@@ -14,8 +14,9 @@ if __name__ == "__main__":
     # config = read_config(args['config'])
     config = read_config('config_d4pg.yml')
     BECEC.set_config(config)
-    # engine = load_engine(config)
-    # engine.test()
-
-    test_scheduler = Test_Scheduler(config,0)
-    test_scheduler.run()
+    if config['test_mode'] == 11:
+        engine = load_engine(config)
+        engine.test()
+    else:
+        test_scheduler = Test_Scheduler(config, config['test_mode'])
+        test_scheduler.run()

@@ -30,6 +30,7 @@ class Agent(object):
         self.ou_noise.reset()
 
         self.actor = policy
+        self.actor.eval()
         print("Agent ", n_agent, self.actor.device)
 
         if config['wolp_mode'] > 0:
@@ -74,13 +75,18 @@ class Agent(object):
         rewards = []
         rewards_pure = []
 
-        # Only used in testing mode, meaning the total number of episodes
-        counts = 0 
-        counts_max = self.config['test_episodes_count']
+        if training_on.value == 2:
+            # Only used in testing mode, meaning the total number of episodes
+            counts = 0 
+            counts_max = self.config['test_episodes_count']
+            sum_ = np.zeros(5)  # thrown error reward time task_num
+            er_log = [] # 记录 episode reward, 方便求方差
 
-        while training_on.value and counts < counts_max:
+        while training_on.value:
             if training_on.value == 2:
                 counts+=1
+                if counts > counts_max:
+                    break
 
             episode_reward = 0.
             rewards.clear()
@@ -245,9 +251,9 @@ class Agent(object):
             else:
                 step = update_step.value
             
-
+            episode_time = time.time() - ep_start_time
             self.logger.scalar_summary(f"agent_{self.agent_type}/episode_reward", episode_reward, step)
-            self.logger.scalar_summary(f"agent_{self.agent_type}/episode_timing", time.time() - ep_start_time, step)
+            self.logger.scalar_summary(f"agent_{self.agent_type}/episode_timing", episode_time, step)
             if self.agent_type == "exploitation" and self.config["env"] == "BECEC":
                 self.logger.scalar_summary(f"agent_{self.agent_type}/scheduling_errors", episode_thrown_num, step)
                 self.logger.scalar_summary(f"agent_{self.agent_type}/scheduling_nulls", episode_null_num, step)
@@ -278,6 +284,15 @@ class Agent(object):
                     dict2[f"BS{bs}"] = episode_bs_selected_times[bs]
                 self.logger.scalars_summary(f"agent_{self.agent_type}/bs_selection_PRACTICE", dict2, step)
             
+                if training_on.value == 2:
+                    # thrown error reward time task_num
+                    sum_[0] += episode_null_num
+                    sum_[1] += episode_thrown_num
+                    sum_[2] += episode_reward_pure
+                    sum_[3] += episode_time
+                    sum_[4] += self.env_wrapper.env._env.episode_task_num
+                    er_log.append(episode_reward_pure)
+                    
 
             if self.config["save_reward_threshold"] >= 0 and training_on.value == 1:
                 # Saving agent
@@ -294,6 +309,10 @@ class Agent(object):
 
         empty_torch_queue(replay_queue)
         print(f"Agent {self.n_agent} done.")
+        if training_on.value == 2:
+            print(f"Mean: Thrown tasks: {sum_[0]/counts_max} | Error tasks: {sum_[1]/counts_max} | Pure reward: {sum_[2]/counts_max} | Episode Time: {sum_[3]/counts_max} | Episode Tasks Number: {sum_[4]/counts_max}")
+            ers = np.array(er_log)
+            print(f"Episode Reward: Mean: {ers.mean()}, Std: {ers.std()}")
 
     def save(self, checkpoint_name):
         # process_dir = f"{self.log_dir}/agent_{self.n_agent}"
