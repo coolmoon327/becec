@@ -60,24 +60,26 @@ def dp(cfg, env, test_input):
     # 先在这个位置尝试添加对 dp 修改的版本, 输入尽量和 Greedy 完全一致,
     # 方便后续直接使用 seq 的输出部分
 
+    # u优先的dp
+    # dp = DP(test_input, torch.tensor(seq.res).unsqueeze(0))
+    # dp.improve_score()
+    # print(f"dp_pro: {dp.cost}")
+
     dp = DP(test_input, torch.tensor(seq.res).unsqueeze(0))
     # c优先的dp
     dp.score()
-    print(f"dp_err: {dp.cost}")
+    # print(f"dp_err: {dp.cost}")
     # u, c依次优先的方式
-    dp = DP(test_input, torch.tensor(seq.res).unsqueeze(0))
-    alpha = dp._penalty_factor
+    # dp = DP(test_input, torch.tensor(seq.res).unsqueeze(0))
+    # alpha = dp._penalty_factor
 
     # 从前往后排序task的执行顺序, 也就是说这里把排序的任务也做了
-    tours_seq = alpha.argsort()
-    tours = tours_seq  # 完全新的任务顺序
-    dp.tours = tours
-    dp.score()
-    print(f"the best: {dp.cost}")
+    # tours_seq = alpha.argsort()
+    # tours = tours_seq  # 完全新的任务顺序
+    # dp.tours = tours
+    # dp.score()
+    # print(f"the best: {dp.cost}")
 
-    # u优先的dp
-    dp = DP(test_input, torch.tensor(seq.res).unsqueeze(0))
-    dp.improve_score()
 
     # dp1 = dp(test_input, torch.tensor(seq.res).unsqueeze(0))
     # alpha = dp1._penalty_factor
@@ -327,7 +329,7 @@ class DP:
         # 总的 cost 用 向量乘法就可以了
         cost = np.sum([np.dot(self._p_slots[0], trace[0][i]) for i in range(
             self._task_size)])
-        u = np.sum([np.where(trace[0][i] > 0)[0].max() * alpha[i] for i in
+        u = np.sum([np.where(trace[0][i] > 0)[0].max() * alpha[0][i] for i in
                     range(self._task_size)])
         self.u = np.array([-u], dtype=np.float32)
         self.cost = np.array([cost + u], dtype=np.float32)
@@ -743,7 +745,7 @@ class DP:
         self.u = u
         self.cost = d
         self.traceInfo['tours'] = tours
-        self.traceInfo['trace'] = trace[:, tours[0][:], :]
+        self.traceInfo['trace'] = trace
 
         # 3. 后续的资源量往前补齐, 改变 trace 最后一个时隙的样子
 

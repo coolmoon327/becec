@@ -80,15 +80,15 @@ class Test(object):
         # trace['tours'] 中的 -1 全部删除掉
         trace['tours'] = np.delete(trace['tours'],
                                    np.where(trace['tours'] == -1))
-        # trace 的顺序和 tours 改成一致的 trace (batch, task_seq, slots)
-        trace['trace'] = trace['trace'][:, trace['tours'], :]
+        # # trace 的顺序和 tours 改成一致的 trace (batch, task_seq, slots)
+        # trace['trace'] = trace['trace'][:, trace['tours'], :]
         # trace 的格式改成 (task_seq, slots)
         if len(trace['tours']) == 0:  # 没有能完成的任务
             trace['trace'] = np.array([])
+            self.search_tour()
         else:
             trace['trace'] = trace['trace'].reshape(len(trace['tours']), -1)
-
-        self.trace = trace
+            self.trace = trace
 
     def network_train(self):
         """
