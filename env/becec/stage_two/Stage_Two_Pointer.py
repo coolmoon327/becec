@@ -91,12 +91,18 @@ class Stage_Two_Pointer:
             if tasks_num == 0:
                 continue
 
+            # self.test.trainRl() # 训练第二阶段
             self.env.BS = i
             if self.test.get_env.config['stage2_alg_choice'] == 0:
                 self.test.search_tour()  # 贪心
             elif self.test.get_env.config['stage2_alg_choice'] == 1:
                 self.test.dp_search()  # dp
-            
+            # self.test.search_tour()
+            # print(f"greedy: {self.test.score[0]}")
+            # self.test.dp_search()
+            # print(f"dp    : {self.test.score[0]}")
+            # print()
+
             score = self.test.score[0]
             u = self.test.u[0]
             trace = self.test.trace['trace']

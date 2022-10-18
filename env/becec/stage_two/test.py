@@ -13,7 +13,7 @@ from datetime import datetime
 import numpy as np
 import torch
 from torch import optim, nn
-from torch.utils.data import TensorDataset, DataLoader
+from torch.utils.data import TensorDataset, DataLoader, Dataset
 from time import time
 
 from tqdm import tqdm
@@ -80,15 +80,15 @@ class Test(object):
         # trace['tours'] 中的 -1 全部删除掉
         trace['tours'] = np.delete(trace['tours'],
                                    np.where(trace['tours'] == -1))
-        # trace 的顺序和 tours 改成一致的 trace (batch, task_seq, slots)
-        trace['trace'] = trace['trace'][:, trace['tours'], :]
+        # # trace 的顺序和 tours 改成一致的 trace (batch, task_seq, slots)
+        # trace['trace'] = trace['trace'][:, trace['tours'], :]
         # trace 的格式改成 (task_seq, slots)
         if len(trace['tours']) == 0:  # 没有能完成的任务
             trace['trace'] = np.array([])
+            self.search_tour()
         else:
             trace['trace'] = trace['trace'].reshape(len(trace['tours']), -1)
-
-        self.trace = trace
+            self.trace = trace
 
     def network_train(self):
         """
@@ -146,6 +146,9 @@ class Test(object):
                                                     'device'])
 
         # 对任务执行顺序进行评价
+        # 这两个位置, 对任务执行顺序的评价可以放宽一点 Σuct就可以了 
+        # 那么甚至下面的adv函数都不需要使用了
+        # act_loss也非常容易写出来
         l_batch = self.env.seq_score(tasks, pred_shuffle_tours)
 
         # 比基本的方法要好多少
@@ -165,3 +168,135 @@ class Test(object):
         #     'step:%d/%d, actic loss:%1.3f' % (
         #         i, cfg.steps, act_loss.data))
         """
+
+    def trainRl(self):
+        '''训练整个二阶段的RL'''
+        from torch.utils.tensorboard import SummaryWriter
+        writer = SummaryWriter(os.getcwd() + '/env/becec/stage_two/Pt/run')
+        batch = 32
+        # 获取env和task的信息, 这里自己来生成, task固定长度, env的shape也需要关注
+        dataset = BSDataset(self.cfg)
+        train_loader = DataLoader(dataset=dataset, batch_size=batch,
+                                  shuffle=True, num_workers=2)
+
+        # 设置优化器
+        act_model = self.act_model
+        act_optim = optim.Adam(act_model.parameters(),
+                               lr=self.get_env.config[
+                                   'actor_learning_rate'])
+        criterion = torch.nn.L1Loss()
+
+        # 使用模型
+        act_model = act_model.to(self.get_env.config['device'])
+
+        # 在 RL 训练中还是可以使用 baseline
+        # 获得随机的任务执行顺序
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        min_epoch = 0
+        min_loss = float('inf')
+        for epoch in range(dataset.epoch):
+            random_tours = dataset.random_tours()
+            # baseline = 0
+            for batch_idx, (task_data, env_data) in enumerate(train_loader):
+                # if batch_idx == 0:
+                #     baseline = dataset.uct(task_data, random_tours)
+                #     continue
+
+                tours, neg_log = act_model((task_data, env_data),
+                                           device=device)
+
+                # 这两个位置, 对任务执行顺序的评价可以放宽一点 Σuct就可以了
+                act_optim.zero_grad()
+                # act_loss = Σuct
+                # 30000 基准
+                act_loss = criterion(dataset.uct(task_data, tours),
+                                     torch.tensor(0))
+                act_loss = act_loss.requires_grad_(True)
+                # act_loss = np.abs(dataset.uct(task_data, tours) - baseline)
+                act_loss.backward()
+                nn.utils.clip_grad_norm_(act_model.parameters(), max_norm=1.,
+                                         norm_type=2)
+                # 步进
+                act_optim.step()
+
+                # 保存最佳的模型
+                if epoch >= min_epoch and act_loss < min_loss:
+                    torch.save(act_model.state_dict(),
+                               os.getcwd() + '/env/becec/stage_two/Pt/%d.pth' % (
+                                   epoch))
+                    min_epoch = epoch
+                    min_loss = act_loss
+
+                # 打印和保存最佳模型的地方
+                if (batch_idx + 1) % 10 == 0:
+                    writer.add_scalar('Loss/train', act_loss.item(),
+                    epoch * (dataset.n // dataset.batch) +
+                    batch_idx)
+                    # print(epoch, batch_idx, act_loss.item())
+
+
+class BSDataset(Dataset):
+    def __init__(self, config):
+        # 10240000
+        n = 1024000
+        task_num = config.city_t
+        slot_num = config.slots
+        # w [5, 20]
+        w = np.random.randint(5, 21, size=(n, task_num, 1))  # [5,
+        # 21]
+        # alpha [10, 90]
+        alpha = np.random.randint(10000, 90001, size=(n, task_num, 1)) / 1000.
+
+        # c [15, 25]
+        c = np.random.randint(15000, 25000, size=(n, slot_num, 1)) / 1000.
+        # p [0.5, 1] / (GHz)
+        p = np.random.randint(500, 1000, size=(n, slot_num, 1)) / 1e6
+
+        self.task_data = torch.from_numpy(np.concatenate((w, alpha), axis=2))
+        self.env_data = torch.from_numpy(np.concatenate((c, p), axis=2))
+        self.task_data = self.task_data.float()
+        self.env_data = self.env_data.float()
+        self.n = n
+        self.task_num = task_num
+        self.slot_num = slot_num
+        self.batch = 32
+        self.epoch = 1000
+
+    def __getitem__(self, index):
+        """通过索引得到对象"""
+        return self.task_data[index], self.env_data[index]
+
+    def __len__(self):
+        """得到对象的长度"""
+        return self.n
+
+    def random_tours(self):
+        '''
+        tour:(city_t)
+        return tours:(batch,city_t)
+        '''
+        list = [self.get_random_tour() for i in range(self.batch)]
+        tours = torch.stack(list, dim=0)
+        return tours
+
+    def get_random_tour(self):
+        tour = []
+        while set(tour) != set(range(self.task_num)):
+            task = np.random.randint(self.task_num)
+            if task not in tour:
+                tour.append(task)
+        tour = torch.from_numpy(np.array(tour))
+        return tour
+
+    def uct(self, task_info, tours):
+        """一批任务的loss计算Σuct
+        :param task_info (batch, 10, 2)
+        :param tours (batch, 10)
+        """
+
+        u_c_t = np.zeros(self.batch, )
+        t_slots = np.arange(0, 10)
+        for b in range(self.batch):
+            u_c_t[b] = np.dot(task_info[b][tours[b]][:, 1] * task_info[b][tours[
+                b]][:, 0], t_slots)
+        return torch.from_numpy(u_c_t).float().mean()

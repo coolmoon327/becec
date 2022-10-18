@@ -40,7 +40,7 @@ v_max: 7000. # upper bound of critic value output distribution
 tau: 0.005 # parameter for soft target network updates
 
 is_log_max_min_Q: True  # help to log v_min and v_max through the training process
-                        # when the critic loss is getting to 0, these values are valid
+# when the critic loss is getting to 0, these values are valid
 
 # Action Noise Type
 # type 0: OUNoise
@@ -137,7 +137,7 @@ stage2_alg_choice: 0 # 二阶段算法 0 是用贪心, 1 是用 dp
 
 test_with_stage2: 1 # 是否在 Test_Scheduler 中使用第二阶段的算法
 
-# mode: 
+# mode:
 # 0 - greedy
 # 1 - fully random
 # 2 - partial random
