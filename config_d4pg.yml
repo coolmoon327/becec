@@ -2,15 +2,15 @@
 
 env: BECEC
 random_seed: 88
-num_agents: 0
+num_agents: 10
 
-load_param_while_training: False
+load_param_while_training: 1
 
 # Training parameters
 
 model: d4pg
-batch_size: 32
-num_steps_train: 5_000_000 # number of episodes from all agents
+batch_size: 512
+num_steps_train: 200_000 # number of episodes from all agents
 max_ep_length: 1000 # maximum number of steps per episode
 replay_mem_size: 5_000_000 # maximum capacity of replay memory
 priority_alpha: 0.6 # controls the randomness vs prioritisation of the prioritised sampling (0.0 = Uniform sampling, 1.0 = Greedy prioritisation)
@@ -25,7 +25,7 @@ replay_memory_prioritized: True
 num_episode_save: 100
 device: cuda:0
 agent_device: cuda:0
-save_buffer_on_disk: 0
+save_buffer_on_disk: True
 save_reward_threshold: 1 # difference in best reward to save agent model
 
 # Network parameters
@@ -34,9 +34,9 @@ critic_learning_rate: 0.0005
 actor_learning_rate: 0.0001
 dense_size: 2048 # size of the hidden layers in networks
 hidden_layer_num: 2 # number of the hidden layers in networks
-num_atoms: 1 # number of atoms in output layer of distributed critic
-v_min: -1000. # lower bound of critic value output distribution (depending on reward and discount_rate)
-v_max: 4000. # upper bound of critic value output distribution
+num_atoms: 20 # number of atoms in output layer of distributed critic
+v_min: -3000. # lower bound of critic value output distribution (depending on reward and discount_rate)
+v_max: 7000. # upper bound of critic value output distribution
 tau: 0.005 # parameter for soft target network updates
 
 is_log_max_min_Q: True  # help to log v_min and v_max through the training process
@@ -82,11 +82,11 @@ shuffle_bs: 0
 
 sort_tasks: True
 
-M: 10 # number of BSs
-delta_t: 30 # number of future slots the algorithm use to allocate at once
+M: 30 # number of BSs
+delta_t: 10 # number of future slots the algorithm use to allocate at once
 T: 200 # number of time slots
 # frame: 10 # the length of a frame (warning: was discarded)
-n_tasks: 10 # number of tasks in a group
+n_tasks: 5 # number of tasks in a group
 
 # frame_mode
 # mode 0: set a solid frame length
@@ -100,6 +100,12 @@ frame_mode: 1
 # mode 2: observation = BS Info (delta_t slots of C) + Task Info (w, alpha, u_0)
 # mode 3: Auto-Encoder, observation = BS Info (delta_t slots of C) + Task Info (w, alpha, u_0)
 state_mode: 1
+
+# action
+# plan 0: action = target BS numbers -- for each task, output [-1, 1] and quantify to  M+1 number (M BSs + 1 null)
+# plan 1: action = one-hot -- for each task, output (M+1)*[0, 1] as a group (softmax), indicates the one-hot rate of BSs
+action_mode: 1
+
 # Auto-Encoder (only used in state_mode 3)
 ae_learning_rate: 0.0005
 ae_batch_size: 512
@@ -109,11 +115,6 @@ ae_output_size: 10
 ae_hidden_layer_num: 2
 ae_always_train: True # continue to train AE while training RL
 ae_pretrain_episodes_count: 1000
-
-# action
-# plan 0: action = target BS numbers -- for each task, output [-1, 1] and quantify to  M+1 number (M BSs + 1 null)
-# plan 1: action = one-hot -- for each task, output (M+1)*[0, 1] as a group (softmax), indicates the one-hot rate of BSs
-action_mode: 1
 
 # penalty
 # mode 0: throw all external_tasks in the busy BS, utinity += penalty*len(external_tasks)
@@ -134,13 +135,14 @@ entropy_factor: 500.   # reward + entropy_factor * entropy
 
 stage2_alg_choice: 0 # 二阶段算法 0 是用贪心, 1 是用 dp
 
-test_with_stage2: True # 是否在 Test_Scheduler 中使用第二阶段的算法
+test_with_stage2: 1 # 是否在 Test_Scheduler 中使用第二阶段的算法
 
 # mode:
 # 0 - greedy
 # 1 - fully random
 # 2 - partial random
 # 10 - obtain auto-encoder trainning data
+# 11 - test stage 1 RL + stage 2
 test_mode: 0
 
 test_episodes_count: 100
