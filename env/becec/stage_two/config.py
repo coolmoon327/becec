@@ -15,7 +15,7 @@ def argparser(env):
 	parser.add_argument('-b', '--batch', metavar = 'B', type = int, default = 512, help = 'batch size, default: 512') # batch 的大小先改小一点 64
 	parser.add_argument('-t', '--city_t', metavar = 'T', type = int, default = 5, help = 'number of cities(nodes), time sequence, default: 5') # 城市编号 对应 任务编号，应该改为5（任务数量）
 	parser.add_argument('-s', '--steps', metavar = 'S', type = int, default = 10000, help = 'training steps(epochs), default: 10000') # 训练次数修改为 10000
-	parser.add_argument('-sl', '--slots', metavar = 'SL', type = int, default = 10, help = 'used time slots, default: 10')
+	parser.add_argument('-sl', '--slots', metavar = 'SL', type = int, default = env.config['delta_t'], help = 'used time slots, default: 10')
 	
 	# details
 	parser.add_argument('-e', '--embed', metavar = 'EM', type = int, default = 128, help = 'embedding size') # embedding size 应该要和 hidden size 一致，先假设不变
@@ -52,13 +52,13 @@ def argparser(env):
 	parser.add_argument('-cd', '--cuda_dv', metavar = 'CD', type = str, default = '0', help = 'os CUDA_VISIBLE_DEVICE, default single GPU')
 	# para = Parameter(M=50, T=100)
 	args = parser.parse_args(['-m=test', f"-t={env.config['n_tasks']}", 
-	f"-sl={env.config['delta_t']}", f'-s={1}',  # f'-s={env.param.frame}
-                           '-b=1', '-ap=./env/becec/stage_two/Pt/train10_0414_14_54_step1179000_act.pt', 
+	f'-s={1}',  # f'-s={env.param.frame}
+                           '-b=1',
                            f"--seed={env.config['random_seed']}",
 						    '-ls=10']) # 传入参数的位置
 	dump_pkl(args)
-	cfg = load_pkl(pkl_parser().path)
-	return cfg
+	# cfg = load_pkl(pkl_parser().path)
+	return args
 
 class Config():
 	def __init__(self, **kwargs):	

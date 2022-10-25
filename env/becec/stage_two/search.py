@@ -22,6 +22,30 @@ from env.becec.stage_two.Sequencing import Sequencing
 from env.becec.stage_two.Greedy import Greedy
 
 
+def compare_pointer(cfg, env, test_input, model):
+    """
+    返回对比算法的排序
+    :param cfg:
+    :param env:
+    :param test_input:
+    :param model: 传入的act_model
+    :return: score, u, trace
+    """
+    '''
+        1. 找出对应的序列应该长什么样子
+    '''
+    # model 这里需要输入的是和 actor forward 相同的输入
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    tasks, envs = torch.split(test_input, dim=2, split_size_or_sections=[2,
+                                                                         env.slots * 2])
+    envs = envs[0, 0, :].view(1, 1, env.slots * 2)
+    seq, _ = model((tasks, envs), device=device)
+    greedy = Greedy(test_input, seq.cpu())
+    greedy.greed_score()
+
+    return greedy.score, greedy.u, greedy.traceInfo
+
+
 def sampling(cfg, env, test_input):
     """
     返回对比算法的排序
@@ -79,7 +103,6 @@ def dp(cfg, env, test_input):
     # dp.tours = tours
     # dp.score()
     # print(f"the best: {dp.cost}")
-
 
     # dp1 = dp(test_input, torch.tensor(seq.res).unsqueeze(0))
     # alpha = dp1._penalty_factor
