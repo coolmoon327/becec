@@ -240,8 +240,8 @@ class Test(object):
                 # 打印和保存最佳模型的地方
                 if (batch_idx + 1) % 10 == 0:
                     writer.add_scalar('Loss/train', act_loss.item(),
-                                      epoch * (dataset.n // dataset.batch) +
-                                      batch_idx)
+                    epoch * (dataset.n // dataset.batch) +
+                    batch_idx)
                     # print(epoch, batch_idx, act_loss.item())
 
 
