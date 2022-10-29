@@ -2,7 +2,7 @@
 
 env: BECEC
 random_seed: 88
-num_agents: 10
+num_agents: 0
 
 load_param_while_training: 1
 
@@ -83,7 +83,7 @@ shuffle_bs: 0
 sort_tasks: True
 
 M: 30 # number of BSs
-delta_t: 10 # number of future slots the algorithm use to allocate at once
+delta_t: 30 # number of future slots the algorithm use to allocate at once
 T: 200 # number of time slots
 # frame: 10 # the length of a frame (warning: was discarded)
 n_tasks: 5 # number of tasks in a group

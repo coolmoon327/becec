@@ -35,6 +35,7 @@ def compare_pointer(cfg, env, test_input, model):
         1. 找出对应的序列应该长什么样子
     '''
     # model 这里需要输入的是和 actor forward 相同的输入
+    test_input = copy.deepcopy(test_input)
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     tasks, envs = torch.split(test_input, dim=2, split_size_or_sections=[2,
                                                                          env.slots * 2])
@@ -42,6 +43,22 @@ def compare_pointer(cfg, env, test_input, model):
     seq, _ = model((tasks, envs), device=device)
     greedy = Greedy(test_input, seq.cpu())
     greedy.greed_score()
+    # # 先处理小的任务
+    # seq_negative = ((tasks[0, :, 1] * 5 + tasks[0, :, 0])).argsort().view(1, -1)
+    # # 先处理大的任务
+    # seq_positive = (-(tasks[0, :, 1] * 5 + tasks[0, :, 0])).argsort().view(1,
+    #                                                                        -1)
+    # # 返回总的 u - c 大的那个
+    # greedy_negative = Greedy(test_input, seq_negative.cpu())
+    # greedy_negative.greed_score()
+    # greedy_positive = Greedy(test_input, seq_positive.cpu())
+    # greedy_positive.greed_score()
+    #
+    # if (greedy_negative.u[0] - greedy_negative.score[0] > greedy_positive.u[
+    #     0] - greedy_positive.score[0]):
+    #     greedy = greedy_negative
+    # else:
+    #     greedy = greedy_positive
 
     return greedy.score, greedy.u, greedy.traceInfo
 

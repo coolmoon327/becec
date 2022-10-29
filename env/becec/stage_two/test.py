@@ -18,6 +18,7 @@ from time import time
 
 from tqdm import tqdm
 
+from env.becec.stage_two.Greedy import Greedy
 from env.becec.stage_two.actor import PtrNet1
 from env.becec.stage_two.env import Env_tsp
 from env.becec.stage_two.config import Config, load_pkl, pkl_parser
@@ -42,7 +43,8 @@ class Test(object):
         self.train_steps = 0
         act_model = PtrNet1(cfg, get_env.config)
         act_model.load_state_dict(
-            torch.load("env/becec/stage_two/Pt/24.pth"))
+            torch.load(
+                "env/becec/stage_two/Pt/train10_0423_14_28_step9999_act.pt"))
         self.act_model = act_model
         self.act_model.to(torch.device("cuda:0" if torch.cuda.is_available()
                                        else "cpu"))
@@ -50,13 +52,12 @@ class Test(object):
     def search_tour(self):
         data = \
             self.env.get_task_nodes(self.cfg.seed, self.get_env)
-        total_cost, total_utility, trace = \
-            compare_pointer(self.cfg, self.env, data, self.act_model)
-        print(f"pointer totoal: {total_utility[0] - total_cost[0]}")
-        total_cost, total_utility, trace = \
-            sampling(self.cfg, self.env, data)
-        print(f"对比算法  totoal: {total_utility[0] - total_cost[0]}")
-        print()
+        # total_cost, total_utility, trace = \
+        #     compare_pointer(self.cfg, self.env, data, self.act_model)
+        # print(f"pointer totoal: {total_utility[0] - total_cost[0]}")
+        total_cost, total_utility, trace = sampling(self.cfg, self.env, data)
+        # print(f"对比算法  totoal: {total_utility[0] - total_cost[0]}")
+        # print()
         self.score = total_cost
         self.u = total_utility
         # trace[tours] (batch, task_seq) => (task_seq)
@@ -240,8 +241,8 @@ class Test(object):
                 # 打印和保存最佳模型的地方
                 if (batch_idx + 1) % 10 == 0:
                     writer.add_scalar('Loss/train', act_loss.item(),
-                    epoch * (dataset.n // dataset.batch) +
-                    batch_idx)
+                                      epoch * (dataset.n // dataset.batch) +
+                                      batch_idx)
                     # print(epoch, batch_idx, act_loss.item())
 
 
@@ -310,3 +311,12 @@ class BSDataset(Dataset):
             u_c_t[b] = np.dot(task_info[b][tours[b]][:, 1] * task_info[b][tours[
                 b]][:, 0], t_slots)
         return torch.from_numpy(u_c_t).float().mean()
+
+    def greedy(self, task_data, env_data, tours):
+        """
+        计算在greedy情况下的 u-c的值
+        :param task_data (batch, 10, 2)
+        :param env_data (batch, 10, 2)
+        :param tours (batch, 10)
+        """
+        Greedy()
